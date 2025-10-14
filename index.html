@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- Google Tag Manager -->
+    <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+    new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+    j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+    'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+    })(window,document,'script','dataLayer','GTM-TJN2RHHB');</script>
+    <!-- End Google Tag Manager -->
+
+    <!-- ExoClick VAST Client Hints -->
+    <meta http-equiv="Delegate-CH" content="Sec-CH-UA https://s.magsrv.com; Sec-CH-UA-Mobile https://s.magsrv.com; Sec-CH-UA-Arch https://s.magsrv.com; Sec-CH-UA-Model https://s.magsrv.com; Sec-CH-UA-Platform https://s.magsrv.com; Sec-CH-UA-Platform-Version https://s.magsrv.com; Sec-CH-UA-Bitness https://s.magsrv.com; Sec-CH-UA-Full-Version-List https://s.magsrv.com; Sec-CH-UA-Full-Version https://s.magsrv.com;">
+
+    <title>Blue Balls - Protect Your Balls | blueballs.lol</title>
+    <link rel="icon" type="image/png" href="favicon.png">
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="description" content="Play Blue Balls, a fun and challenging game where you protect your balls from pinks stuffs. Try to beat the global high score!">
+    <meta name="keywords" content="blue balls, ball game, online game, free game, high score game, protection game, flappy game">
+    <meta property="og:title" content="Blue Balls - Protect Your Balls | blueball.lol">
+    <meta property="og:description" content="Challenge yourself in this addictive game. Can you beat the global high score of 108,972?">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://blueballs.lol">
+    <meta property="og:image" content="https://blueballs.pages.dev/social.jpg">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@700&display=swap" rel="stylesheet">
+
+    <!-- External CSS -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Google Tag Manager (noscript) -->
+    <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-TJN2RHHB"
+    height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+    <!-- End Google Tag Manager (noscript) -->
+
+    <!-- Floating Header -->
+    <div id="floating-header">
+        <div id="header-content">
+            <button id="menu-toggle">☰</button>
+            <div id="header-logo-container">
+                <div id="header-logo">BLUEBALLS.LOL</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="side-menu">
+        <div class="buttons-row">
+            <a href="/index.html" class="menu-difficulty-button" id="menu-difficulty-easy">Easy</a>
+        </div>
+    </div>
+
+    <!-- Fixed Ad Wrapper -->
+    <div class="ad-wrapper">
+        <div class="ad-container">
+            <a href="https://susmanga.com/?ref=blueballs.lol" target="_blank" rel="noopener noreferrer">
+                <img src="smads.gif" alt="SusManga Ad" style="width: auto; height: auto; max-width: 320px; max-height: 50px; object-fit: contain; object-position: center;"/>
+            </a>
+        </div>
+    </div>
+
+    <div id="game-container">
+        <div id="score">0</div>
+        <div id="start-screen">Tap or Press Space to Start Game!</div>
+        <canvas id="gameCanvas" width="600" height="600"></canvas>
+
+        <!-- Game Over Overlay -->
+        <div id="game-over-overlay">
+            <div id="game-over-content">
+                <div id="game-over-title">Game Over!</div>
+                <div id="final-score">Your Score: <span id="final-score-value">0</span></div>
+
+                <button id="share-score-button">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="18" cy="5" r="3"></circle>
+                        <circle cx="6" cy="12" r="3"></circle>
+                        <circle cx="18" cy="19" r="3"></circle>
+                        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+                        <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+                    </svg>
+                    Share Your Score
+                </button>
+
+                <button id="restart-button">PLAY AGAIN</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="global-top-score">Global Top Score: 108 972 - <a href="https://blueballs.lol">Refresh Page</a></div>
+
+    <div id="share-container">
+        <button id="share-button">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="18" cy="5" r="3"></circle>
+                <circle cx="6" cy="12" r="3"></circle>
+                <circle cx="18" cy="19" r="3"></circle>
+                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+                <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+            </svg>
+            Share Game
+        </button>
+    </div>
+    <br>
+    <a href='https://ko-fi.com/G2G11BL86B' target='_blank'><img height='36' style='border:0px;height:36px;' src='https://storage.ko-fi.com/cdn/kofi6.png?v=6' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a>
+    <br>
+
+    <!-- ExoClick VAST Video Ad (Responsive, Reasonable Size) 
+    <div style="position: relative; width: 100%; max-width: 480px; margin: 40px auto; padding-top: 56.25%;">
+        <iframe
+            src="https://s.magsrv.com/splash.php?idzone=5684194"
+            style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"
+            frameborder="0"
+            scrolling="no"
+            allowfullscreen
+        ></iframe>
+    </div> -->
+
+    <div id="bottom-ad" style="margin: 40px auto; text-align: center;">
+        <iframe
+            data-aa="2402432"
+            src="//ad.a-ads.com/2402432?size=300x250"
+            style="width:300px; height:250px; border:0; padding:0; overflow:hidden; background-color: transparent;"
+            allowtransparency="true"
+            scrolling="no"
+        ></iframe>
+        <a
+            href="https://aads.com/campaigns/new/?source_id=2402432&source_type=ad_unit&partner=2402432"
+            style="display: block; text-align: right; font-size: 12px; color: #eee;"
+            target="_blank"
+            rel="noopener noreferrer"
+        >
+            Advertise here
+        </a>
+    </div>
+
+    <!-- External JavaScript -->
+    <script src="game.js"></script>
+
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Game",
+      "name": "Blue Balls",
+      "description": "A challenging game where you protect your blue ball from obstacles",
+      "url": "https://blueballs.lol",
+      "genre": ["Arcade", "Casual"],
+      "numberOfPlayers": {
+        "@type": "QuantitativeValue",
+        "minValue": 1,
+        "maxValue": 1
+      }
+    }
+    </script>
+</body>
+</html>
