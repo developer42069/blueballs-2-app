@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import { supabase } from '$lib/supabase';
 	import { user, profile } from '$lib/stores/auth';
 	import { goto } from '$app/navigation';
@@ -13,6 +13,7 @@
 	let loading = true;
 	let sending = false;
 	let messagesContainer: HTMLDivElement;
+	let messageSubscription: any = null;
 
 	onMount(async () => {
 		if (!$user) {
@@ -22,6 +23,12 @@
 
 		await loadFriends();
 		loading = false;
+	});
+
+	onDestroy(() => {
+		if (messageSubscription) {
+			messageSubscription.unsubscribe();
+		}
 	});
 
 	async function loadFriends() {
@@ -42,12 +49,18 @@
 
 	async function selectFriend(friend: Friend & { friend: Profile }) {
 		selectedFriend = friend;
+
+		// Unsubscribe from previous friend's messages
+		if (messageSubscription) {
+			messageSubscription.unsubscribe();
+		}
+
 		await loadChatMessages(friend.friend_id);
+		subscribeToFriendMessages(friend.friend_id);
 	}
 
 	async function loadChatMessages(friendId: string) {
-		// For now, we'll create a simple direct message system
-		// Messages are stored in a new table we'll need to create
+		// Load messages between current user and selected friend
 		const { data } = await supabase
 			.from('direct_messages')
 			.select('*')
@@ -61,6 +74,36 @@
 		} else {
 			messages = [];
 		}
+	}
+
+	function subscribeToFriendMessages(friendId: string) {
+		// Subscribe to new messages between current user and selected friend
+		messageSubscription = supabase
+			.channel(`dm-${$user!.id}-${friendId}`)
+			.on('postgres_changes', {
+				event: 'INSERT',
+				schema: 'public',
+				table: 'direct_messages',
+				filter: `sender_id=eq.${friendId},receiver_id=eq.${$user!.id}`
+			}, (payload) => {
+				// Add incoming message from friend
+				messages = [...messages, payload.new];
+				setTimeout(scrollToBottom, 100);
+			})
+			.on('postgres_changes', {
+				event: 'INSERT',
+				schema: 'public',
+				table: 'direct_messages',
+				filter: `sender_id=eq.${$user!.id},receiver_id=eq.${friendId}`
+			}, (payload) => {
+				// Add outgoing message to friend (in case sent from another tab/device)
+				const messageExists = messages.some(m => m.id === payload.new.id);
+				if (!messageExists) {
+					messages = [...messages, payload.new];
+					setTimeout(scrollToBottom, 100);
+				}
+			})
+			.subscribe();
 	}
 
 	async function sendMessage() {
