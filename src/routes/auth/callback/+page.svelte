@@ -9,79 +9,46 @@
 
 	onMount(async () => {
 		try {
-			// Debug: Log all URL parameters
-			console.log('Callback URL:', window.location.href);
-			console.log('Search params:', $page.url.searchParams.toString());
-			console.log('Hash:', window.location.hash);
-
 			// Get the code from URL
 			const code = $page.url.searchParams.get('code');
-			console.log('OAuth code:', code ? 'Present' : 'Missing');
 
-			if (code) {
-				// Exchange the code for a session
-				console.log('Exchanging code for session...');
-				const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+			if (!code) {
+				// No code yet, just wait (this prevents the error message flash)
+				status = 'Processing authentication...';
+				return;
+			}
 
-				console.log('Exchange result:', { data, error: exchangeError });
+			// Exchange the code for a session
+			const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
 
-				if (exchangeError) throw exchangeError;
+			if (exchangeError) throw exchangeError;
 
-				if (data.user) {
-					// Check if profile exists
-					const { data: existingProfile } = await supabase
-						.from('profiles')
-						.select('id')
-						.eq('id', data.user.id)
-						.single();
+			if (data.user) {
+				// Check if profile exists
+				const { data: existingProfile } = await supabase
+					.from('profiles')
+					.select('id')
+					.eq('id', data.user.id)
+					.single();
 
-					// If no profile exists, create one
-					if (!existingProfile) {
-						const countryCode = $page.url.searchParams.get('country_code') || 'US';
-						const region = $page.url.searchParams.get('region') || 'north_america';
-
-						// Extract username from email or user metadata
-						const username = data.user.user_metadata.username ||
+				// If no profile exists, redirect to onboarding
+				if (!existingProfile) {
+					// Store user data temporarily for onboarding
+					sessionStorage.setItem('onboarding_user', JSON.stringify({
+						id: data.user.id,
+						email: data.user.email,
+						avatar_url: data.user.user_metadata.avatar_url,
+						suggested_username: data.user.user_metadata.username ||
 							data.user.user_metadata.full_name ||
 							data.user.email?.split('@')[0] ||
-							`user${Math.random().toString(36).substring(7)}`;
-
-						const { error: profileError } = await supabase.from('profiles').insert({
-							id: data.user.id,
-							username,
-							email: data.user.email || '',
-							country_code: countryCode,
-							region: region as any,
-							membership_tier: 'free',
-							lives: 100,
-							max_lives: 100,
-							lives_per_hour: 4,
-							last_life_regen: new Date().toISOString(),
-							lifetime_level: 1,
-							lifetime_points: 0,
-							last_30_days_points: 0,
-							current_rank: 'blue',
-							high_score_easy: 0,
-							high_score_medium: 0,
-							high_score_hard: 0,
-							profile_picture_url: data.user.user_metadata.avatar_url || null,
-							profile_public: true,
-							allow_friend_requests: true,
-							is_admin: false
-						});
-
-						if (profileError) {
-							console.error('Profile creation error:', profileError);
-						}
-					}
-
-					status = 'Success! Redirecting...';
-					setTimeout(() => {
-						goto('/dashboard');
-					}, 500);
+							`user${Math.random().toString(36).substring(7)}`
+					}));
+					goto('/auth/onboarding');
+					return;
 				}
-			} else {
-				throw new Error('No authentication code provided');
+
+				// Profile exists - show welcome screen then redirect to homepage
+				goto('/auth/welcome');
 			}
 		} catch (e: any) {
 			console.error('Auth callback error:', e);

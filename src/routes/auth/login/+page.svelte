@@ -56,7 +56,8 @@
 
 			if (signInError) throw signInError;
 
-			goto('/dashboard');
+			// Show welcome screen then redirect to homepage
+			goto('/auth/welcome');
 		} catch (e: any) {
 			error = e.message || 'Failed to login';
 		} finally {

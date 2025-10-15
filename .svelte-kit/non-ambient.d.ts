@@ -27,7 +27,7 @@ export {};
 
 declare module "$app/types" {
 	export interface AppTypes {
-		RouteId(): "/" | "/affiliate" | "/api" | "/api/lives" | "/api/lives/regen" | "/api/notifications" | "/api/notifications/mark-all-read" | "/api/notifications/mark-read" | "/api/score" | "/api/stripe" | "/api/stripe/create-checkout" | "/api/stripe/webhook" | "/auth" | "/auth/callback" | "/auth/forgot-password" | "/auth/login" | "/auth/register" | "/auth/reset-password" | "/bolengadmin" | "/chat" | "/chat/friends" | "/dashboard" | "/friends" | "/game" | "/game/[difficulty]" | "/leaderboard" | "/privacy" | "/profile" | "/profile/[id]" | "/settings" | "/subscribe" | "/terms";
+		RouteId(): "/" | "/affiliate" | "/api" | "/api/lives" | "/api/lives/regen" | "/api/notifications" | "/api/notifications/mark-all-read" | "/api/notifications/mark-read" | "/api/score" | "/api/stripe" | "/api/stripe/create-checkout" | "/api/stripe/webhook" | "/auth" | "/auth/callback" | "/auth/forgot-password" | "/auth/goodbye" | "/auth/login" | "/auth/onboarding" | "/auth/register" | "/auth/reset-password" | "/auth/welcome" | "/bolengadmin" | "/chat" | "/chat/friends" | "/dashboard" | "/friends" | "/game" | "/game/[difficulty]" | "/leaderboard" | "/privacy" | "/profile" | "/profile/[id]" | "/settings" | "/subscribe" | "/terms";
 		RouteParams(): {
 			"/game/[difficulty]": { difficulty: string };
 			"/profile/[id]": { id: string }
@@ -48,9 +48,12 @@ declare module "$app/types" {
 			"/auth": Record<string, never>;
 			"/auth/callback": Record<string, never>;
 			"/auth/forgot-password": Record<string, never>;
+			"/auth/goodbye": Record<string, never>;
 			"/auth/login": Record<string, never>;
+			"/auth/onboarding": Record<string, never>;
 			"/auth/register": Record<string, never>;
 			"/auth/reset-password": Record<string, never>;
+			"/auth/welcome": Record<string, never>;
 			"/bolengadmin": Record<string, never>;
 			"/chat": Record<string, never>;
 			"/chat/friends": Record<string, never>;
@@ -66,7 +69,7 @@ declare module "$app/types" {
 			"/subscribe": Record<string, never>;
 			"/terms": Record<string, never>
 		};
-		Pathname(): "/" | "/affiliate" | "/affiliate/" | "/api" | "/api/" | "/api/lives" | "/api/lives/" | "/api/lives/regen" | "/api/lives/regen/" | "/api/notifications" | "/api/notifications/" | "/api/notifications/mark-all-read" | "/api/notifications/mark-all-read/" | "/api/notifications/mark-read" | "/api/notifications/mark-read/" | "/api/score" | "/api/score/" | "/api/stripe" | "/api/stripe/" | "/api/stripe/create-checkout" | "/api/stripe/create-checkout/" | "/api/stripe/webhook" | "/api/stripe/webhook/" | "/auth" | "/auth/" | "/auth/callback" | "/auth/callback/" | "/auth/forgot-password" | "/auth/forgot-password/" | "/auth/login" | "/auth/login/" | "/auth/register" | "/auth/register/" | "/auth/reset-password" | "/auth/reset-password/" | "/bolengadmin" | "/bolengadmin/" | "/chat" | "/chat/" | "/chat/friends" | "/chat/friends/" | "/dashboard" | "/dashboard/" | "/friends" | "/friends/" | "/game" | "/game/" | `/game/${string}` & {} | `/game/${string}/` & {} | "/leaderboard" | "/leaderboard/" | "/privacy" | "/privacy/" | "/profile" | "/profile/" | `/profile/${string}` & {} | `/profile/${string}/` & {} | "/settings" | "/settings/" | "/subscribe" | "/subscribe/" | "/terms" | "/terms/";
+		Pathname(): "/" | "/affiliate" | "/affiliate/" | "/api" | "/api/" | "/api/lives" | "/api/lives/" | "/api/lives/regen" | "/api/lives/regen/" | "/api/notifications" | "/api/notifications/" | "/api/notifications/mark-all-read" | "/api/notifications/mark-all-read/" | "/api/notifications/mark-read" | "/api/notifications/mark-read/" | "/api/score" | "/api/score/" | "/api/stripe" | "/api/stripe/" | "/api/stripe/create-checkout" | "/api/stripe/create-checkout/" | "/api/stripe/webhook" | "/api/stripe/webhook/" | "/auth" | "/auth/" | "/auth/callback" | "/auth/callback/" | "/auth/forgot-password" | "/auth/forgot-password/" | "/auth/goodbye" | "/auth/goodbye/" | "/auth/login" | "/auth/login/" | "/auth/onboarding" | "/auth/onboarding/" | "/auth/register" | "/auth/register/" | "/auth/reset-password" | "/auth/reset-password/" | "/auth/welcome" | "/auth/welcome/" | "/bolengadmin" | "/bolengadmin/" | "/chat" | "/chat/" | "/chat/friends" | "/chat/friends/" | "/dashboard" | "/dashboard/" | "/friends" | "/friends/" | "/game" | "/game/" | `/game/${string}` & {} | `/game/${string}/` & {} | "/leaderboard" | "/leaderboard/" | "/privacy" | "/privacy/" | "/profile" | "/profile/" | `/profile/${string}` & {} | `/profile/${string}/` & {} | "/settings" | "/settings/" | "/subscribe" | "/subscribe/" | "/terms" | "/terms/";
 		ResolvedPathname(): `${"" | `/${string}`}${ReturnType<AppTypes['Pathname']>}`;
 		Asset(): string & {};
 	}

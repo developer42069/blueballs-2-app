@@ -21,7 +21,10 @@ export const nodes = [
 	() => import('./nodes/17'),
 	() => import('./nodes/18'),
 	() => import('./nodes/19'),
-	() => import('./nodes/20')
+	() => import('./nodes/20'),
+	() => import('./nodes/21'),
+	() => import('./nodes/22'),
+	() => import('./nodes/23')
 ];
 
 export const server_loads = [];
@@ -31,21 +34,24 @@ export const dictionary = {
 		"/affiliate": [3],
 		"/auth/callback": [4],
 		"/auth/forgot-password": [5],
-		"/auth/login": [6],
-		"/auth/register": [7],
-		"/auth/reset-password": [8],
-		"/bolengadmin": [9],
-		"/chat": [10],
-		"/chat/friends": [11],
-		"/dashboard": [12],
-		"/friends": [13],
-		"/game/[difficulty]": [14],
-		"/leaderboard": [15],
-		"/privacy": [16],
-		"/profile/[id]": [17],
-		"/settings": [18],
-		"/subscribe": [19],
-		"/terms": [20]
+		"/auth/goodbye": [6],
+		"/auth/login": [7],
+		"/auth/onboarding": [8],
+		"/auth/register": [9],
+		"/auth/reset-password": [10],
+		"/auth/welcome": [11],
+		"/bolengadmin": [12],
+		"/chat": [13],
+		"/chat/friends": [14],
+		"/dashboard": [15],
+		"/friends": [16],
+		"/game/[difficulty]": [17],
+		"/leaderboard": [18],
+		"/privacy": [19],
+		"/profile/[id]": [20],
+		"/settings": [21],
+		"/subscribe": [22],
+		"/terms": [23]
 	};
 
 export const hooks = {

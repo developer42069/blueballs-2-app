@@ -110,8 +110,8 @@
   }
 
   async function handleLogout() {
-    await supabase.auth.signOut();
-    goto("/");
+    // Show goodbye screen, which will handle sign out and redirect
+    goto("/auth/goodbye");
   }
 
   function toggleRightMenu() {
