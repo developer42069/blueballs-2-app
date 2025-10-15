@@ -12,7 +12,7 @@ type EnsureDefined<T> = T extends null | undefined ? {} : T;
 type OptionalUnion<U extends Record<string, any>, A extends keyof U = U extends U ? keyof U : never> = U extends unknown ? { [P in Exclude<A, keyof U>]?: never } & U : never;
 export type Snapshot<T = any> = Kit.Snapshot<T>;
 type PageParentData = EnsureDefined<LayoutData>;
-type LayoutRouteId = RouteId | "/" | "/affiliate" | "/auth/callback" | "/auth/forgot-password" | "/auth/goodbye" | "/auth/login" | "/auth/onboarding" | "/auth/register" | "/auth/reset-password" | "/auth/welcome" | "/bolengadmin" | "/chat" | "/chat/friends" | "/dashboard" | "/friends" | "/game/[difficulty]" | "/leaderboard" | "/privacy" | "/profile/[id]" | "/settings" | "/subscribe" | "/terms" | null
+type LayoutRouteId = RouteId | "/" | "/affiliate" | "/auth/callback" | "/auth/forgot-password" | "/auth/goodbye" | "/auth/login" | "/auth/onboarding" | "/auth/register" | "/auth/reset-password" | "/auth/welcome" | "/bolengadmin" | "/chat" | "/chat/friends" | "/dashboard" | "/friends" | "/game/[difficulty]" | "/leaderboard" | "/privacy" | "/profile/[id]" | "/settings" | "/subscribe" | "/subscribe/success" | "/terms" | null
 type LayoutParams = RouteParams & { difficulty?: string; id?: string }
 type LayoutParentData = EnsureDefined<{}>;
 

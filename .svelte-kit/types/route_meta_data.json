@@ -38,5 +38,6 @@
 	"/profile/[id]": [],
 	"/settings": [],
 	"/subscribe": [],
+	"/subscribe/success": [],
 	"/terms": []
 }

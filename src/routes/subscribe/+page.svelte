@@ -13,6 +13,9 @@
 	let cancelLoading = false;
 
 	onMount(async () => {
+		// Wait a bit for auth to load before redirecting
+		await new Promise(resolve => setTimeout(resolve, 500));
+
 		if (!$user) {
 			goto('/auth/login');
 			return;
