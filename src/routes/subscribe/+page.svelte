@@ -60,7 +60,9 @@
 	async function handleCancelSubscription() {
 		if (!$user || !$profile) return;
 
-		if (!confirm('Are you sure you want to cancel your subscription? You will lose access to premium features at the end of your billing period.')) {
+		const tierName = $profile.membership_tier === 'mid' ? 'Mid' : 'Big';
+
+		if (!confirm(`Are you sure you want to cancel your ${tierName} subscription?\n\nYou'll keep all premium features until the end of your billing period, then automatically return to the Free tier.\n\nNo refunds will be issued.`)) {
 			return;
 		}
 
@@ -71,10 +73,10 @@
 		try {
 			const response = await fetch('/api/cancel-subscription', {
 				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					userId: $user.id
-				})
+				headers: {
+					'Content-Type': 'application/json',
+					'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
+				}
 			});
 
 			if (!response.ok) {
@@ -82,7 +84,14 @@
 				throw new Error(data.error || 'Failed to cancel subscription');
 			}
 
-			success = 'Subscription cancelled successfully. You will retain access until the end of your billing period.';
+			const result = await response.json();
+			const endDate = new Date(result.endsAt).toLocaleDateString('en-US', {
+				year: 'numeric',
+				month: 'long',
+				day: 'numeric'
+			});
+
+			success = `Subscription cancelled successfully! You'll keep your ${tierName} benefits until ${endDate}, then return to the Free tier.`;
 
 			// Reload profile
 			const { data } = await supabase
@@ -139,24 +148,35 @@
 			{#if $profile && $profile.membership_tier !== 'free'}
 				<div class="card max-w-2xl mx-auto mb-8 bg-gradient-to-br from-primary to-secondary text-white">
 					<div class="flex items-center justify-between flex-wrap gap-4">
-						<div>
+						<div class="flex-1">
 							<h3 class="text-xl font-bold mb-1">Current Plan: {MEMBERSHIP_TIERS[$profile.membership_tier].name}</h3>
 							<p class="text-sm opacity-90">
 								{#if $profile.subscription_ends_at}
-									Renews on: {formatDate($profile.subscription_ends_at)}
+									{#if $profile.stripe_subscription_id}
+										Renews on: {formatDate($profile.subscription_ends_at)}
+									{:else}
+										<strong>⚠️ Cancelled</strong> - Access ends: {formatDate($profile.subscription_ends_at)}
+									{/if}
 								{:else}
 									Active
 								{/if}
 							</p>
 						</div>
-						<button
-							on:click={handleCancelSubscription}
-							class="btn-primary bg-red-500 hover:bg-red-600 flex items-center gap-2"
-							disabled={cancelLoading}
-						>
-							<XCircle size={18} />
-							{cancelLoading ? 'Cancelling...' : 'Cancel Subscription'}
-						</button>
+						{#if $profile.stripe_subscription_id}
+							<button
+								on:click={handleCancelSubscription}
+								class="btn-primary bg-red-500 hover:bg-red-600 flex items-center gap-2"
+								disabled={cancelLoading}
+							>
+								<XCircle size={18} />
+								{cancelLoading ? 'Cancelling...' : 'Cancel Subscription'}
+							</button>
+						{:else}
+							<div class="text-sm opacity-90">
+								Subscription cancelled<br>
+								Returns to Free after expiry
+							</div>
+						{/if}
 					</div>
 				</div>
 			{/if}
@@ -200,19 +220,9 @@
 						</li>
 					</ul>
 
-					{#if $profile?.membership_tier !== 'free'}
-						<button
-							on:click={handleCancelSubscription}
-							class="btn-primary bg-gray-500 hover:bg-gray-600 w-full"
-							disabled={cancelLoading}
-						>
-							Downgrade to Free
-						</button>
-					{:else}
-						<button class="btn-primary bg-gray-400 cursor-not-allowed w-full" disabled>
-							Current Plan
-						</button>
-					{/if}
+					<button class="btn-primary bg-gray-400 cursor-not-allowed w-full" disabled>
+						Current Plan
+					</button>
 				</div>
 
 				<!-- Mid Tier -->
@@ -259,10 +269,10 @@
 							Current Plan
 						</button>
 					{:else if $profile?.membership_tier === 'big'}
-						<button class="btn-primary bg-gray-500 hover:bg-gray-600 w-full">
-							Downgrade to Mid
-						</button>
-					{:else}
+						<div class="text-center text-sm dark:text-gray-400">
+							Cancel your Big subscription to switch to Mid
+						</div>
+					{:else if $profile?.membership_tier === 'free'}
 						<button
 							on:click={() => handleSubscribe('mid')}
 							class="btn-primary bg-orange-500 hover:bg-orange-600 w-full"
@@ -320,7 +330,15 @@
 						<button class="btn-primary bg-white/20 cursor-not-allowed w-full" disabled>
 							Current Plan
 						</button>
-					{:else}
+					{:else if $profile?.membership_tier === 'mid'}
+						<button
+							on:click={() => handleSubscribe('big')}
+							class="btn-primary bg-white text-primary hover:bg-gray-100 w-full font-bold"
+							disabled={processingCheckout}
+						>
+							{processingCheckout ? 'Processing...' : 'Upgrade to Big'}
+						</button>
+					{:else if $profile?.membership_tier === 'free'}
 						<button
 							on:click={() => handleSubscribe('big')}
 							class="btn-primary bg-white text-primary hover:bg-gray-100 w-full font-bold"
@@ -348,8 +366,18 @@
 					<div>
 						<h3 class="font-bold mb-2">Can I cancel anytime?</h3>
 						<p class="dark:text-gray-300 text-sm">
-							Yes! You can cancel your subscription at any time. You'll retain access to premium features
-							until the end of your billing period.
+							Yes! You can cancel your subscription at any time. You'll keep all premium features
+							until the end of your billing period. After that, you'll automatically return to the Free tier.
+							Your game progress and stats will be preserved.
+						</p>
+					</div>
+
+					<div>
+						<h3 class="font-bold mb-2">How do I switch between Mid and Big?</h3>
+						<p class="dark:text-gray-300 text-sm">
+							<strong>Upgrading from Mid to Big:</strong> Just click "Upgrade to Big" and you'll be charged immediately for the higher tier.
+							<br><br>
+							<strong>Downgrading from Big to Mid:</strong> Cancel your Big subscription first. After it expires at the end of your billing period, you can subscribe to Mid.
 						</p>
 					</div>
 
@@ -361,18 +389,10 @@
 					</div>
 
 					<div>
-						<h3 class="font-bold mb-2">What happens if I downgrade?</h3>
+						<h3 class="font-bold mb-2">What is your refund policy?</h3>
 						<p class="dark:text-gray-300 text-sm">
-							If you downgrade, you'll lose access to premium features at the end of your current billing period.
-							Your game progress and stats will be preserved.
-						</p>
-					</div>
-
-					<div>
-						<h3 class="font-bold mb-2">Do you offer refunds?</h3>
-						<p class="dark:text-gray-300 text-sm">
-							We offer refunds within 7 days of purchase if you're not satisfied. Contact our support team
-							for assistance.
+							We do not offer refunds. When you cancel your subscription, you keep full access to premium features
+							until the end of your billing period. This ensures you get what you paid for.
 						</p>
 					</div>
 				</div>

@@ -1,6 +1,9 @@
 {
 	"/": [],
 	"/affiliate": [],
+	"/api/cancel-subscription": [
+		"src/routes/api/cancel-subscription/+server.ts"
+	],
 	"/api/lives/regen": [
 		"src/routes/api/lives/regen/+server.ts"
 	],
