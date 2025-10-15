@@ -9,13 +9,43 @@
 
 	onMount(async () => {
 		try {
+			// First check if user is already authenticated
+			const { data: { user: existingUser } } = await supabase.auth.getUser();
+
+			if (existingUser) {
+				// User is already authenticated, just check profile and redirect
+				const { data: existingProfile } = await supabase
+					.from('profiles')
+					.select('id')
+					.eq('id', existingUser.id)
+					.single();
+
+				if (!existingProfile) {
+					// No profile, go to onboarding
+					sessionStorage.setItem('onboarding_user', JSON.stringify({
+						id: existingUser.id,
+						email: existingUser.email,
+						avatar_url: existingUser.user_metadata.avatar_url,
+						suggested_username: existingUser.user_metadata.username ||
+							existingUser.user_metadata.full_name ||
+							existingUser.email?.split('@')[0] ||
+							`user${Math.random().toString(36).substring(7)}`
+					}));
+					goto('/auth/onboarding');
+					return;
+				}
+
+				// Profile exists - show welcome screen
+				goto('/auth/welcome');
+				return;
+			}
+
 			// Get the code from URL
 			const code = $page.url.searchParams.get('code');
 
 			if (!code) {
-				// No code yet, just wait (this prevents the error message flash)
-				status = 'Processing authentication...';
-				return;
+				// No code and no existing session - redirect to login
+				throw new Error('No authentication code provided');
 			}
 
 			// Exchange the code for a session
