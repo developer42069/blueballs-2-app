@@ -31,7 +31,9 @@
 	"/friends": [],
 	"/game/[difficulty]": [],
 	"/leaderboard": [],
+	"/privacy": [],
 	"/profile/[id]": [],
 	"/settings": [],
-	"/subscribe": []
+	"/subscribe": [],
+	"/terms": []
 }

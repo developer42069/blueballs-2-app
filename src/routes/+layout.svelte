@@ -581,9 +581,33 @@
   </aside>
 
   <!-- Main Content -->
-  <main class="pt-16 {leftMenuOpen && !isMobile ? 'ml-64' : ''} transition-all">
+  <main class="pt-16 pb-16 {leftMenuOpen && !isMobile ? 'ml-64' : ''} transition-all">
     <slot />
   </main>
+
+  <!-- Footer -->
+  <footer class="bg-gray-100 dark:bg-dark-secondary border-t border-gray-200 dark:border-gray-700 py-4 {leftMenuOpen && !isMobile ? 'ml-64' : ''} transition-all">
+    <div class="max-w-7xl mx-auto px-4">
+      <div class="flex flex-col md:flex-row items-center justify-between gap-2 text-sm text-gray-600 dark:text-gray-400">
+        <div class="text-center md:text-left">
+          © {new Date().getFullYear()} BlueBalls.lol. All rights reserved.
+        </div>
+        <div class="flex items-center gap-4">
+          <a href="/privacy" class="hover:text-primary dark:hover:text-blue-400 transition">
+            Privacy Policy
+          </a>
+          <span class="text-gray-400">|</span>
+          <a href="/terms" class="hover:text-primary dark:hover:text-blue-400 transition">
+            Terms of Service
+          </a>
+          <span class="text-gray-400">|</span>
+          <a href="mailto:hello@blueballs.lol" class="hover:text-primary dark:hover:text-blue-400 transition">
+            Contact
+          </a>
+        </div>
+      </div>
+    </div>
+  </footer>
 
   <!-- Click outside to close menus -->
   {#if leftMenuOpen && isMobile}

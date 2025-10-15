@@ -27,7 +27,7 @@ export {};
 
 declare module "$app/types" {
 	export interface AppTypes {
-		RouteId(): "/" | "/affiliate" | "/api" | "/api/lives" | "/api/lives/regen" | "/api/notifications" | "/api/notifications/mark-all-read" | "/api/notifications/mark-read" | "/api/score" | "/api/stripe" | "/api/stripe/create-checkout" | "/api/stripe/webhook" | "/auth" | "/auth/callback" | "/auth/forgot-password" | "/auth/login" | "/auth/register" | "/auth/reset-password" | "/bolengadmin" | "/chat" | "/chat/friends" | "/dashboard" | "/friends" | "/game" | "/game/[difficulty]" | "/leaderboard" | "/profile" | "/profile/[id]" | "/settings" | "/subscribe";
+		RouteId(): "/" | "/affiliate" | "/api" | "/api/lives" | "/api/lives/regen" | "/api/notifications" | "/api/notifications/mark-all-read" | "/api/notifications/mark-read" | "/api/score" | "/api/stripe" | "/api/stripe/create-checkout" | "/api/stripe/webhook" | "/auth" | "/auth/callback" | "/auth/forgot-password" | "/auth/login" | "/auth/register" | "/auth/reset-password" | "/bolengadmin" | "/chat" | "/chat/friends" | "/dashboard" | "/friends" | "/game" | "/game/[difficulty]" | "/leaderboard" | "/privacy" | "/profile" | "/profile/[id]" | "/settings" | "/subscribe" | "/terms";
 		RouteParams(): {
 			"/game/[difficulty]": { difficulty: string };
 			"/profile/[id]": { id: string }
@@ -59,12 +59,14 @@ declare module "$app/types" {
 			"/game": { difficulty?: string };
 			"/game/[difficulty]": { difficulty: string };
 			"/leaderboard": Record<string, never>;
+			"/privacy": Record<string, never>;
 			"/profile": { id?: string };
 			"/profile/[id]": { id: string };
 			"/settings": Record<string, never>;
-			"/subscribe": Record<string, never>
+			"/subscribe": Record<string, never>;
+			"/terms": Record<string, never>
 		};
-		Pathname(): "/" | "/affiliate" | "/affiliate/" | "/api" | "/api/" | "/api/lives" | "/api/lives/" | "/api/lives/regen" | "/api/lives/regen/" | "/api/notifications" | "/api/notifications/" | "/api/notifications/mark-all-read" | "/api/notifications/mark-all-read/" | "/api/notifications/mark-read" | "/api/notifications/mark-read/" | "/api/score" | "/api/score/" | "/api/stripe" | "/api/stripe/" | "/api/stripe/create-checkout" | "/api/stripe/create-checkout/" | "/api/stripe/webhook" | "/api/stripe/webhook/" | "/auth" | "/auth/" | "/auth/callback" | "/auth/callback/" | "/auth/forgot-password" | "/auth/forgot-password/" | "/auth/login" | "/auth/login/" | "/auth/register" | "/auth/register/" | "/auth/reset-password" | "/auth/reset-password/" | "/bolengadmin" | "/bolengadmin/" | "/chat" | "/chat/" | "/chat/friends" | "/chat/friends/" | "/dashboard" | "/dashboard/" | "/friends" | "/friends/" | "/game" | "/game/" | `/game/${string}` & {} | `/game/${string}/` & {} | "/leaderboard" | "/leaderboard/" | "/profile" | "/profile/" | `/profile/${string}` & {} | `/profile/${string}/` & {} | "/settings" | "/settings/" | "/subscribe" | "/subscribe/";
+		Pathname(): "/" | "/affiliate" | "/affiliate/" | "/api" | "/api/" | "/api/lives" | "/api/lives/" | "/api/lives/regen" | "/api/lives/regen/" | "/api/notifications" | "/api/notifications/" | "/api/notifications/mark-all-read" | "/api/notifications/mark-all-read/" | "/api/notifications/mark-read" | "/api/notifications/mark-read/" | "/api/score" | "/api/score/" | "/api/stripe" | "/api/stripe/" | "/api/stripe/create-checkout" | "/api/stripe/create-checkout/" | "/api/stripe/webhook" | "/api/stripe/webhook/" | "/auth" | "/auth/" | "/auth/callback" | "/auth/callback/" | "/auth/forgot-password" | "/auth/forgot-password/" | "/auth/login" | "/auth/login/" | "/auth/register" | "/auth/register/" | "/auth/reset-password" | "/auth/reset-password/" | "/bolengadmin" | "/bolengadmin/" | "/chat" | "/chat/" | "/chat/friends" | "/chat/friends/" | "/dashboard" | "/dashboard/" | "/friends" | "/friends/" | "/game" | "/game/" | `/game/${string}` & {} | `/game/${string}/` & {} | "/leaderboard" | "/leaderboard/" | "/privacy" | "/privacy/" | "/profile" | "/profile/" | `/profile/${string}` & {} | `/profile/${string}/` & {} | "/settings" | "/settings/" | "/subscribe" | "/subscribe/" | "/terms" | "/terms/";
 		ResolvedPathname(): `${"" | `/${string}`}${ReturnType<AppTypes['Pathname']>}`;
 		Asset(): string & {};
 	}
