@@ -9,8 +9,7 @@
   import {
     Menu,
     X,
-    Sun,
-    Moon,
+    Bell,
     User,
     LogOut,
     Home,
@@ -110,8 +109,10 @@
     if (isMobile) leftMenuOpen = false;
   }
 
-  function toggleTheme() {
-    $theme = $theme === "dark" ? "light" : "dark";
+  function handleNotificationClick() {
+    // Placeholder for notification functionality
+    // Will be implemented in Phase 2
+    alert("Notifications coming soon! 🔔");
   }
 </script>
 
@@ -138,18 +139,19 @@
         BLUEBALLS.LOL
       </a>
 
-      <!-- Right: Theme + Profile Picture/Icon -->
+      <!-- Right: Notification Bell + Profile Picture/Icon -->
       <div class="flex items-center gap-2">
-        <button
-          on:click={toggleTheme}
-          class="text-white p-2 hover:bg-white/10 rounded-lg transition"
-        >
-          {#if $theme === "dark"}
-            <Sun size={20} />
-          {:else}
-            <Moon size={20} />
-          {/if}
-        </button>
+        {#if $user}
+          <button
+            on:click={handleNotificationClick}
+            class="text-white p-2 hover:bg-white/10 rounded-lg transition relative"
+            title="Notifications"
+          >
+            <Bell size={20} />
+            <!-- Notification badge placeholder (will show count in Phase 2) -->
+            <!-- <span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">3</span> -->
+          </button>
+        {/if}
         <!-- Profile Picture or Empty Circle -->
         <button
           on:click={toggleRightMenu}
