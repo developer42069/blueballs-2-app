@@ -27,6 +27,7 @@
  */
 declare module '$env/static/private' {
 	export const STRIPE_SECRET_KEY: string;
+	export const STRIPE_PUBLISHABLE_KEY: string;
 	export const STRIPE_WEBHOOK_SECRET: string;
 	export const STRIPE_PRICE_ID_MID: string;
 	export const STRIPE_PRICE_ID_BIG: string;
@@ -180,6 +181,7 @@ declare module '$env/static/public' {
 declare module '$env/dynamic/private' {
 	export const env: {
 		STRIPE_SECRET_KEY: string;
+		STRIPE_PUBLISHABLE_KEY: string;
 		STRIPE_WEBHOOK_SECRET: string;
 		STRIPE_PRICE_ID_MID: string;
 		STRIPE_PRICE_ID_BIG: string;

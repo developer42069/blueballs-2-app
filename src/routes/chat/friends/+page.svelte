@@ -111,21 +111,30 @@
 
 		sending = true;
 
+		const messageText = newMessage.trim();
+		newMessage = ''; // Clear input immediately for better UX
+
 		try {
-			const { error } = await supabase
+			const { data: insertedMessage, error } = await supabase
 				.from('direct_messages')
 				.insert({
 					sender_id: $user.id,
 					receiver_id: selectedFriend.friend_id,
-					message: newMessage.trim()
-				});
+					message: messageText
+				})
+				.select()
+				.single();
 
 			if (error) throw error;
 
-			newMessage = '';
-			await loadChatMessages(selectedFriend.friend_id);
+			// Optimistically add the message to the UI immediately
+			if (insertedMessage) {
+				messages = [...messages, insertedMessage];
+				setTimeout(scrollToBottom, 100);
+			}
 		} catch (err: any) {
 			console.error('Failed to send message:', err);
+			newMessage = messageText; // Restore message on error
 		} finally {
 			sending = false;
 		}

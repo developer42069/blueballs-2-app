@@ -64,6 +64,10 @@
 				schema: 'public',
 				table: 'chat_messages'
 			}, async (payload) => {
+				// Check if message already exists (to prevent duplicates from our own sends)
+				const messageExists = messages.some(m => m.id === payload.new.id);
+				if (messageExists) return;
+
 				// Load the profile data for the new message
 				const { data: profileData } = await supabase
 					.from('profiles')
@@ -129,16 +133,36 @@
 		sending = true;
 		error = '';
 
+		const messageText = newMessage.trim();
+		newMessage = ''; // Clear input immediately for better UX
+
 		try {
 			// Insert message
-			const { error: insertError } = await supabase
+			const { data: insertedMessage, error: insertError } = await supabase
 				.from('chat_messages')
 				.insert({
 					user_id: $user.id,
-					message: newMessage.trim()
-				});
+					message: messageText
+				})
+				.select()
+				.single();
 
 			if (insertError) throw insertError;
+
+			// Optimistically add the message to the UI immediately
+			if (insertedMessage) {
+				const newMsg = {
+					...insertedMessage,
+					profiles: {
+						id: $profile?.id,
+						username: $profile?.username,
+						membership_tier: $profile?.membership_tier,
+						current_rank: $profile?.current_rank
+					}
+				};
+				messages = [...messages, newMsg];
+				setTimeout(scrollToBottom, 100);
+			}
 
 			// Update rate limit
 			const { error: rateLimitError } = await supabase
@@ -151,12 +175,12 @@
 
 			if (rateLimitError) throw rateLimitError;
 
-			newMessage = '';
 			canSendMessage = false;
 			cooldownSeconds = getCooldownForTier($profile?.membership_tier || 'free');
 			startCooldownTimer();
 		} catch (err: any) {
 			error = err.message || 'Failed to send message';
+			newMessage = messageText; // Restore message on error
 		} finally {
 			sending = false;
 		}

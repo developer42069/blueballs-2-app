@@ -2,7 +2,7 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { supabase } from '$lib/supabase';
 import Stripe from 'stripe';
-import { STRIPE_SECRET_KEY } from '$env/static/private';
+import { STRIPE_SECRET_KEY, STRIPE_PRICE_ID_MID, STRIPE_PRICE_ID_BIG } from '$env/static/private';
 
 const stripe = new Stripe(STRIPE_SECRET_KEY, {
 	apiVersion: '2024-12-18.acacia'
@@ -63,10 +63,10 @@ export const POST: RequestHandler = async ({ request, url }) => {
 				.eq('id', user.id);
 		}
 
-		// Define price IDs (you'll need to create these in Stripe dashboard)
+		// Define price IDs
 		const priceIds: Record<string, string> = {
-			mid: process.env.STRIPE_PRICE_ID_MID || 'price_mid_placeholder',
-			big: process.env.STRIPE_PRICE_ID_BIG || 'price_big_placeholder'
+			mid: STRIPE_PRICE_ID_MID,
+			big: STRIPE_PRICE_ID_BIG
 		};
 
 		// Create checkout session
