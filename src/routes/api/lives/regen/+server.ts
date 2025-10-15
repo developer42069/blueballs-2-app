@@ -1,7 +1,7 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { createClient } from '@supabase/supabase-js';
-import { PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY } from '$env/static/public';
+import { PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY } from '$env/static/public';
 
 export const POST: RequestHandler = async ({ request }) => {
 	try {
@@ -15,7 +15,7 @@ export const POST: RequestHandler = async ({ request }) => {
 		const token = authHeader.replace('Bearer ', '');
 		const supabase = createClient(
 			PUBLIC_SUPABASE_URL,
-			PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY,
+			PUBLIC_SUPABASE_ANON_KEY,
 			{
 				global: {
 					headers: {
