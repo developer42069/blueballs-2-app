@@ -1,6 +1,7 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { supabase } from '$lib/supabase';
+import { createClient } from '@supabase/supabase-js';
+import { PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY } from '$env/static/public';
 
 export const POST: RequestHandler = async ({ request }) => {
 	try {
@@ -12,11 +13,25 @@ export const POST: RequestHandler = async ({ request }) => {
 			return json({ success: false, error: 'Unauthorized' }, { status: 401 });
 		}
 
-		// Get user from Supabase auth using the access token from header
+		// Create a Supabase client with the user's token
 		const token = authHeader.replace('Bearer ', '');
-		const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+		const supabase = createClient(
+			PUBLIC_SUPABASE_URL,
+			PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY,
+			{
+				global: {
+					headers: {
+						Authorization: authHeader
+					}
+				}
+			}
+		);
+
+		// Get user from Supabase auth using the access token
+		const { data: { user }, error: authError } = await supabase.auth.getUser();
 
 		if (authError || !user) {
+			console.error('Auth error:', authError);
 			return json({ success: false, error: 'Unauthorized' }, { status: 401 });
 		}
 
