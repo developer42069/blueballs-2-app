@@ -15,7 +15,7 @@
 
 	// Profile fields
 	let username = '';
-	let country = '';
+	let country = ''; // Maps to country_code in database
 	let profilePublic = false;
 	let socialPlatform = '';
 	let socialLink = '';
@@ -81,7 +81,7 @@
 		if (!$profile) return;
 
 		username = $profile.username || '';
-		country = $profile.country || '';
+		country = $profile.country_code || '';
 		profilePublic = $profile.profile_public;
 		socialPlatform = $profile.social_platform || '';
 		socialLink = $profile.social_link || '';
@@ -251,7 +251,7 @@
 		try {
 			const updates = {
 				username: username.trim(),
-				country: country,
+				country_code: country,
 				profile_public: profilePublic,
 				social_platform: socialPlatform || null,
 				social_link: socialLink.trim() || null,
