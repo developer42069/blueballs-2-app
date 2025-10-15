@@ -114,14 +114,14 @@
 
 	function getRankColor(rank: string): string {
 		const colors: Record<string, string> = {
-			blue: 'bg-blue-600',
-			silver: 'bg-gray-400',
-			gold: 'bg-yellow-500',
-			platinum: 'bg-gray-300',
-			diamond: 'bg-cyan-400',
-			black: 'bg-black'
+			blue: 'bg-blue-500 dark:bg-blue-400',
+			silver: 'bg-gray-500 dark:bg-gray-400',
+			gold: 'bg-yellow-500 dark:bg-yellow-400',
+			platinum: 'bg-gray-400 dark:bg-gray-300',
+			diamond: 'bg-cyan-500 dark:bg-cyan-400',
+			black: 'bg-black dark:bg-gray-200 dark:text-black'
 		};
-		return colors[rank] || 'bg-gray-600';
+		return colors[rank] || 'bg-gray-600 dark:bg-gray-500';
 	}
 
 	function getRankName(rank: string): string {

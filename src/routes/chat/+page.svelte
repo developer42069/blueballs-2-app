@@ -26,7 +26,6 @@
 		await loadMessages();
 		subscribeToMessages();
 		checkCooldown();
-		loading = false;
 	});
 
 	onDestroy(() => {
@@ -54,6 +53,7 @@
 			messages = data.reverse();
 			setTimeout(scrollToBottom, 100);
 		}
+		loading = false;
 	}
 
 	function subscribeToMessages() {
@@ -170,14 +170,14 @@
 
 	function getRankColor(rank: string): string {
 		const colors: Record<string, string> = {
-			blue: 'text-blue-600 dark:text-blue-400',
-			silver: 'text-gray-400',
-			gold: 'text-yellow-500',
-			platinum: 'text-gray-300',
-			diamond: 'text-cyan-400',
+			blue: 'text-blue-500 dark:text-blue-300',
+			silver: 'text-gray-500 dark:text-gray-300',
+			gold: 'text-yellow-500 dark:text-yellow-400',
+			platinum: 'text-gray-400 dark:text-gray-200',
+			diamond: 'text-cyan-500 dark:text-cyan-300',
 			black: 'text-black dark:text-white'
 		};
-		return colors[rank] || 'text-gray-600';
+		return colors[rank] || 'text-gray-600 dark:text-gray-400';
 	}
 
 	function getTierBadge(tier: string): string {

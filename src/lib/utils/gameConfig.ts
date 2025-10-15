@@ -28,12 +28,12 @@ export const GAME_CONFIG = {
 export type Difficulty = keyof typeof GAME_CONFIG;
 
 export const RANK_NAMES = {
-	blue: { name: 'Blue', color: '#00008B', threshold: 0 },
+	blue: { name: 'Blue', color: '#3B82F6', threshold: 0 },
 	silver: { name: 'Silver', color: '#C0C0C0', threshold: 1000 },
 	gold: { name: 'Gold', color: '#FFD700', threshold: 3000 },
 	platinum: { name: 'Platinum', color: '#E5E4E2', threshold: 7000 },
 	diamond: { name: 'Diamond', color: '#B9F2FF', threshold: 15000 },
-	black: { name: 'Black', color: '#000000', threshold: 25000 }
+	black: { name: 'Black', color: '#E5E5E5', threshold: 25000 }
 } as const;
 
 export const RANK_ORDER = ['blue', 'silver', 'gold', 'platinum', 'diamond', 'black'] as const;
