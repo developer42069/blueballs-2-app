@@ -88,7 +88,7 @@
 		error = '';
 
 		try {
-			// Sign up
+			// Sign up - profile will be created automatically by database trigger
 			const { data: authData, error: signUpError } = await supabase.auth.signUp({
 				email,
 				password,
@@ -103,36 +103,9 @@
 
 			if (signUpError) throw signUpError;
 
-			if (authData.user) {
-				// Create profile
-				const { error: profileError } = await supabase.from('profiles').insert({
-					id: authData.user.id,
-					username,
-					email,
-					country_code: countryCode,
-					region,
-					membership_tier: 'free',
-					lives: 100,
-					max_lives: 100,
-					lives_per_hour: 4,
-					last_life_regen: new Date().toISOString(),
-					lifetime_level: 1,
-					lifetime_points: 0,
-					last_30_days_points: 0,
-					current_rank: 'blue',
-					high_score_easy: 0,
-					high_score_medium: 0,
-					high_score_hard: 0,
-					profile_public: true,
-					allow_friend_requests: true,
-					is_admin: false
-				});
-
-				if (profileError) throw profileError;
-
-				// Redirect to dashboard
-				goto('/dashboard');
-			}
+			// Profile is automatically created by the handle_new_user() trigger
+			// Redirect to dashboard
+			goto('/dashboard');
 		} catch (e: any) {
 			error = e.message || 'Failed to register';
 		} finally {
