@@ -424,13 +424,49 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-    INSERT INTO profiles (id, email, username, country_code, region)
+    INSERT INTO profiles (
+        id,
+        email,
+        username,
+        country_code,
+        region,
+        lives,
+        max_lives,
+        lives_per_hour,
+        last_life_regen,
+        lifetime_level,
+        lifetime_points,
+        last_30_days_points,
+        current_rank,
+        high_score_easy,
+        high_score_medium,
+        high_score_hard,
+        profile_picture_url,
+        profile_public,
+        allow_friend_requests,
+        is_admin
+    )
     VALUES (
         NEW.id,
         NEW.email,
         COALESCE(NEW.raw_user_meta_data->>'username', SPLIT_PART(NEW.email, '@', 1)),
         COALESCE(NEW.raw_user_meta_data->>'country_code', 'US'),
-        COALESCE((NEW.raw_user_meta_data->>'region')::region, 'north_america')
+        COALESCE((NEW.raw_user_meta_data->>'region')::region, 'north_america'),
+        100, -- lives
+        100, -- max_lives
+        4, -- lives_per_hour
+        NOW(), -- last_life_regen
+        1, -- lifetime_level
+        0, -- lifetime_points
+        0, -- last_30_days_points
+        'blue', -- current_rank
+        0, -- high_score_easy
+        0, -- high_score_medium
+        0, -- high_score_hard
+        NEW.raw_user_meta_data->>'avatar_url', -- profile_picture_url from OAuth
+        true, -- profile_public
+        true, -- allow_friend_requests
+        false -- is_admin
     );
     RETURN NEW;
 END;

@@ -9,12 +9,21 @@
 
 	onMount(async () => {
 		try {
+			// Debug: Log all URL parameters
+			console.log('Callback URL:', window.location.href);
+			console.log('Search params:', $page.url.searchParams.toString());
+			console.log('Hash:', window.location.hash);
+
 			// Get the code from URL
 			const code = $page.url.searchParams.get('code');
+			console.log('OAuth code:', code ? 'Present' : 'Missing');
 
 			if (code) {
 				// Exchange the code for a session
+				console.log('Exchanging code for session...');
 				const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+
+				console.log('Exchange result:', { data, error: exchangeError });
 
 				if (exchangeError) throw exchangeError;
 

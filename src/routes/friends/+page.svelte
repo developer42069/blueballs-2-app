@@ -188,11 +188,13 @@
 
 		{#if loading}
 			<div class="text-center py-8">
-				<p>Loading friends...</p>
+				<div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
 			</div>
 		{:else if friendsWithScores.length === 0}
-			<div class="text-center py-8 text-gray-500">
-				<p>No friends yet. Invite some friends to compete!</p>
+			<div class="text-center py-12">
+				<UserPlus size={48} class="mx-auto text-gray-400 dark:text-gray-600 mb-4" />
+				<p class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">You have no friends yet</p>
+				<p class="text-gray-500 dark:text-gray-400">Invite a friend to compete!</p>
 			</div>
 		{:else}
 			<div class="space-y-2">

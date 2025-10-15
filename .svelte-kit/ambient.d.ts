@@ -30,10 +30,13 @@ declare module '$env/static/private' {
 	export const SUPABASE_ACCESS_TOKEN: string;
 	export const STRIPE_TEST_PUBLISHABLE_KEY: string;
 	export const STRIPE_TEST_SECRET_KEY: string;
+	export const STRIPE_PUBLISHABLE_KEY: string;
 	export const STRIPE_SECRET_KEY: string;
 	export const STRIPE_WEBHOOK_SECRET: string;
 	export const STRIPE_PRICE_ID_MID: string;
 	export const STRIPE_PRICE_ID_BIG: string;
+	export const VITE_GOOGLE_CLIENT_ID: string;
+	export const VITE_GOOGLE_CLIENT_SECRET: string;
 	export const ACSetupSvcPort: string;
 	export const ACSvcPort: string;
 	export const ALLUSERSPROFILE: string;
@@ -130,7 +133,7 @@ declare module '$env/static/private' {
  */
 declare module '$env/static/public' {
 	export const PUBLIC_SUPABASE_URL: string;
-	export const PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY: string;
+	export const PUBLIC_SUPABASE_ANON_KEY: string;
 	export const PUBLIC_APP_URL: string;
 }
 
@@ -152,10 +155,13 @@ declare module '$env/dynamic/private' {
 		SUPABASE_ACCESS_TOKEN: string;
 		STRIPE_TEST_PUBLISHABLE_KEY: string;
 		STRIPE_TEST_SECRET_KEY: string;
+		STRIPE_PUBLISHABLE_KEY: string;
 		STRIPE_SECRET_KEY: string;
 		STRIPE_WEBHOOK_SECRET: string;
 		STRIPE_PRICE_ID_MID: string;
 		STRIPE_PRICE_ID_BIG: string;
+		VITE_GOOGLE_CLIENT_ID: string;
+		VITE_GOOGLE_CLIENT_SECRET: string;
 		ACSetupSvcPort: string;
 		ACSvcPort: string;
 		ALLUSERSPROFILE: string;
@@ -257,7 +263,7 @@ declare module '$env/dynamic/private' {
 declare module '$env/dynamic/public' {
 	export const env: {
 		PUBLIC_SUPABASE_URL: string;
-		PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY: string;
+		PUBLIC_SUPABASE_ANON_KEY: string;
 		PUBLIC_APP_URL: string;
 		[key: `PUBLIC_${string}`]: string | undefined;
 	}

@@ -14,8 +14,10 @@
 		"src/routes/api/stripe/webhook/+server.ts"
 	],
 	"/auth/callback": [],
+	"/auth/forgot-password": [],
 	"/auth/login": [],
 	"/auth/register": [],
+	"/auth/reset-password": [],
 	"/bolengadmin": [],
 	"/chat": [],
 	"/dashboard": [],

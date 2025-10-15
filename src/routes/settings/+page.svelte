@@ -3,7 +3,7 @@
 	import { user, profile } from '$lib/stores/auth';
 	import { goto } from '$app/navigation';
 	import { supabase } from '$lib/supabase';
-	import { Settings, Globe, Link2, MessageSquare, Users, Image, CheckCircle, X, Upload } from 'lucide-svelte';
+	import { Settings, Globe, Link2, MessageSquare, Users, Image, CheckCircle, X, Upload, Eye } from 'lucide-svelte';
 
 	let loading = true;
 	let saving = false;
@@ -309,10 +309,20 @@
 
 			<!-- Profile Visibility -->
 			<div class="card mb-6">
-				<h2 class="text-xl font-bold mb-4 flex items-center gap-2">
-					<Globe size={24} />
-					Profile Visibility
-				</h2>
+				<div class="flex items-center justify-between mb-4">
+					<h2 class="text-xl font-bold flex items-center gap-2">
+						<Globe size={24} />
+						Profile Visibility
+					</h2>
+					<a
+						href="/profile/{$user?.id}"
+						target="_blank"
+						class="btn-primary bg-purple-500 hover:bg-purple-600 text-sm py-2 px-4 flex items-center gap-2"
+					>
+						<Eye size={18} />
+						Preview My Profile
+					</a>
+				</div>
 
 				<label class="flex items-center gap-3 cursor-pointer">
 					<input

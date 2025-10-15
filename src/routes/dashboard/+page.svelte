@@ -3,7 +3,7 @@
 	import { user, profile } from '$lib/stores/auth';
 	import { goto } from '$app/navigation';
 	import { supabase, type GameScore } from '$lib/supabase';
-	import { RANK_NAMES, MEMBERSHIP_TIERS } from '$lib/utils/gameConfig';
+	import { RANK_NAMES, RANK_ORDER, MEMBERSHIP_TIERS } from '$lib/utils/gameConfig';
 	import { Heart, Trophy, TrendingUp, Clock, Star, Play } from 'lucide-svelte';
 
 	let recentScores: GameScore[] = [];
@@ -20,10 +20,60 @@
 		calculateLivesRegen();
 		loading = false;
 
-		// Update lives regen time every minute
-		const interval = setInterval(calculateLivesRegen, 60000);
-		return () => clearInterval(interval);
+		// Check for lives regeneration immediately
+		await checkAndRegenerateLives();
+
+		// Update lives regen time every second for accurate countdown
+		const countdownInterval = setInterval(calculateLivesRegen, 1000);
+
+		// Check for lives regeneration every 10 seconds
+		const regenInterval = setInterval(checkAndRegenerateLives, 10000);
+
+		return () => {
+			clearInterval(countdownInterval);
+			clearInterval(regenInterval);
+		};
 	});
+
+	async function checkAndRegenerateLives() {
+		if (!$user || !$profile) return;
+
+		// Calculate if user should have gained lives
+		const now = new Date();
+		const lastRegen = new Date($profile.last_life_regen);
+		const timeDiff = now.getTime() - lastRegen.getTime();
+		const hoursPassed = timeDiff / (1000 * 60 * 60);
+		const livesGained = Math.floor(hoursPassed * $profile.lives_per_hour);
+
+		// If lives should be gained, call the API to regenerate
+		if (livesGained > 0 && $profile.lives < $profile.max_lives) {
+			try {
+				const { data: { session } } = await supabase.auth.getSession();
+				if (!session) return;
+
+				const response = await fetch('/api/lives/regen', {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+						'Authorization': `Bearer ${session.access_token}`
+					}
+				});
+
+				const data = await response.json();
+
+				if (data.success && data.profile) {
+					// Update local profile with new lives
+					$profile = {
+						...$profile,
+						lives: data.profile.lives,
+						last_life_regen: data.profile.last_life_regen
+					};
+				}
+			} catch (e) {
+				console.error('Failed to regenerate lives:', e);
+			}
+		}
+	}
 
 	async function loadRecentScores() {
 		if (!$user) return;
@@ -49,11 +99,19 @@
 		const lastRegen = new Date($profile.last_life_regen);
 		const now = new Date();
 		const diff = now.getTime() - lastRegen.getTime();
-		const minutesSinceRegen = Math.floor(diff / 60000);
+		const secondsSinceRegen = Math.floor(diff / 1000);
 		const minutesPerLife = 60 / $profile.lives_per_hour;
-		const minutesUntilNext = minutesPerLife - (minutesSinceRegen % minutesPerLife);
+		const secondsPerLife = minutesPerLife * 60;
 
-		livesRegen = `${minutesUntilNext}m`;
+		const secondsUntilNext = Math.ceil(secondsPerLife - (secondsSinceRegen % secondsPerLife));
+		const minutesUntilNext = Math.floor(secondsUntilNext / 60);
+		const secondsRemainder = secondsUntilNext % 60;
+
+		if (minutesUntilNext > 0) {
+			livesRegen = `${minutesUntilNext}m ${secondsRemainder}s`;
+		} else {
+			livesRegen = `${secondsRemainder}s`;
+		}
 	}
 
 	function formatDate(dateString: string) {
@@ -85,6 +143,34 @@
 		const color = RANK_NAMES[rank as keyof typeof RANK_NAMES]?.color;
 		return color || '#666666';
 	}
+
+	function calculateRankProgress() {
+		if (!$profile) return { progress: 0, currentRank: 'blue', nextRank: 'silver', currentPoints: 0, nextThreshold: 1000 };
+
+		const currentRankIndex = RANK_ORDER.indexOf($profile.current_rank as any);
+		const currentRank = RANK_ORDER[currentRankIndex];
+		const nextRank = currentRankIndex < RANK_ORDER.length - 1 ? RANK_ORDER[currentRankIndex + 1] : currentRank;
+
+		const currentThreshold = RANK_NAMES[currentRank].threshold;
+		const nextThreshold = RANK_NAMES[nextRank].threshold;
+		const currentPoints = $profile.last_30_days_points;
+
+		if (currentRankIndex === RANK_ORDER.length - 1) {
+			// Max rank
+			return { progress: 100, currentRank, nextRank, currentPoints, nextThreshold };
+		}
+
+		const progress = ((currentPoints - currentThreshold) / (nextThreshold - currentThreshold)) * 100;
+		return {
+			progress: Math.min(100, Math.max(0, progress)),
+			currentRank,
+			nextRank,
+			currentPoints,
+			nextThreshold
+		};
+	}
+
+	$: rankData = calculateRankProgress();
 </script>
 
 <svelte:head>
@@ -165,19 +251,54 @@
 				</div>
 			</div>
 
-			<!-- Progress Bar -->
-			<div class="card mb-6">
-				<div class="flex items-center justify-between mb-2">
-					<h3 class="font-bold">Level Progress</h3>
-					<span class="text-sm dark:text-gray-300">Level {$profile.lifetime_level} → {$profile.lifetime_level + 1}</span>
+			<!-- Progress Bars -->
+			<div class="space-y-4 mb-6">
+				<!-- Level Progress -->
+				<div class="card">
+					<div class="flex items-center justify-between mb-2">
+						<h3 class="font-bold flex items-center gap-2">
+							<TrendingUp size={20} class="text-primary" />
+							Level Progress
+						</h3>
+						<span class="text-sm dark:text-gray-300">Level {$profile.lifetime_level} → {$profile.lifetime_level + 1}</span>
+					</div>
+					<div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-4">
+						<div
+							class="bg-gradient-to-r from-primary to-secondary h-4 rounded-full transition-all duration-500"
+							style="width: {calculateProgress()}%"
+						></div>
+					</div>
+					<p class="text-xs text-center mt-1 dark:text-gray-300">{calculateProgress().toFixed(1)}% to next level</p>
 				</div>
-				<div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-4">
-					<div
-						class="bg-gradient-to-r from-primary to-secondary h-4 rounded-full transition-all duration-500"
-						style="width: {calculateProgress()}%"
-					></div>
+
+				<!-- Rank Progress -->
+				<div class="card">
+					<div class="flex items-center justify-between mb-2">
+						<h3 class="font-bold flex items-center gap-2">
+							<Trophy size={20} class="text-yellow-500" />
+							Rank Progress
+						</h3>
+						<span class="text-sm dark:text-gray-300">
+							<span style="color: {RANK_NAMES[rankData.currentRank].color}">{RANK_NAMES[rankData.currentRank].name}</span>
+							{#if rankData.currentRank !== rankData.nextRank}
+								→ <span style="color: {RANK_NAMES[rankData.nextRank].color}">{RANK_NAMES[rankData.nextRank].name}</span>
+							{/if}
+						</span>
+					</div>
+					<div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-4">
+						<div
+							class="h-4 rounded-full transition-all duration-500"
+							style="width: {rankData.progress}%; background: linear-gradient(to right, {RANK_NAMES[rankData.currentRank].color}, {RANK_NAMES[rankData.nextRank].color})"
+						></div>
+					</div>
+					{#if rankData.currentRank !== rankData.nextRank}
+						<p class="text-xs text-center mt-1 dark:text-gray-300">
+							{rankData.currentPoints.toLocaleString()} / {rankData.nextThreshold.toLocaleString()} points (30-day)
+						</p>
+					{:else}
+						<p class="text-xs text-center mt-1 dark:text-gray-300">Max Rank Achieved!</p>
+					{/if}
 				</div>
-				<p class="text-xs text-center mt-1 dark:text-gray-300">{calculateProgress().toFixed(1)}% to next level</p>
 			</div>
 
 			<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">

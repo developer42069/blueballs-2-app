@@ -2,7 +2,7 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { createEventDispatcher } from 'svelte';
 	import { GAME_CONFIG, type Difficulty } from '$lib/utils/gameConfig';
-	import { Volume2, VolumeX } from 'lucide-svelte';
+	import { Volume2, VolumeX, Share2, RefreshCw } from 'lucide-svelte';
 
 	export let difficulty: Difficulty = 'easy';
 
@@ -18,6 +18,7 @@
 	let countdown = 0; // 3, 2, 1, 0 (0 means countdown finished)
 	let countdownInterval: number;
 	let waitingForFirstJump = false; // True after countdown, waiting for first jump
+	let showGameOverModal = false; // Show the game over modal
 
 	// Game objects
 	let bird = {
@@ -110,17 +111,25 @@
 		};
 
 		canvas.addEventListener('click', handleInput);
-		window.addEventListener('keydown', (e) => {
+		const keydownHandler = (e: KeyboardEvent) => {
+			// Don't interfere with typing in inputs/textareas
+			const target = e.target as HTMLElement;
+			if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
+				return;
+			}
+
 			if (e.code === 'Space' || e.code === 'ArrowUp') {
 				e.preventDefault();
 				handleInput();
 			}
-		});
+		};
+		window.addEventListener('keydown', keydownHandler);
 
 		drawStartScreen();
 
 		return () => {
 			window.removeEventListener('resize', resizeCanvas);
+			window.removeEventListener('keydown', keydownHandler);
 			if (animationId) cancelAnimationFrame(animationId);
 		};
 	});
@@ -286,13 +295,38 @@
 	function endGame() {
 		gameOver = true;
 		playSound('die');
-		drawGameOver();
+		showGameOverModal = true;
 
 		// Calculate points earned
 		const pointsEarned = Math.floor(score * config.pointMultiplier);
 
 		// Dispatch game over event with score
 		dispatch('gameover', { score, pointsEarned });
+	}
+
+	function playAgain() {
+		showGameOverModal = false;
+		startCountdown();
+	}
+
+	async function shareScore() {
+		const shareText = `I scored ${score} points in Blue Balls ${difficulty} mode! Can you beat me?`;
+		const shareUrl = window.location.href;
+
+		if (navigator.share) {
+			try {
+				await navigator.share({
+					title: 'Blue Balls Game',
+					text: shareText,
+					url: shareUrl
+				});
+			} catch (err) {
+				// Fallback to clipboard
+				navigator.clipboard.writeText(`${shareText} ${shareUrl}`);
+			}
+		} else {
+			navigator.clipboard.writeText(`${shareText} ${shareUrl}`);
+		}
 	}
 
 	function draw() {
@@ -483,10 +517,32 @@
 		bind:this={canvas}
 		class="w-full border-4 border-primary dark:border-secondary rounded-lg shadow-2xl cursor-pointer"
 		style="max-height: 500px;"
-	/>
+	></canvas>
 
 	<div class="mt-4 text-center text-sm dark:text-gray-300">
 		<p>Click or press SPACE to jump</p>
 		<p class="mt-1">Avoid the pink obstacles!</p>
 	</div>
 </div>
+
+{#if showGameOverModal}
+	<div class="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+		<div class="bg-white dark:bg-dark-secondary rounded-lg p-8 max-w-md w-full mx-4 text-center shadow-2xl">
+			<h2 class="text-4xl font-bold text-secondary mb-4">GAME OVER!</h2>
+			<p class="text-6xl font-bold text-gray-800 dark:text-white mb-2">{score}</p>
+			<p class="text-gray-600 dark:text-gray-400 mb-4">Score</p>
+			<p class="text-2xl font-bold text-primary dark:text-secondary mb-6">{Math.floor(score * config.pointMultiplier)} Points</p>
+
+			<div class="flex gap-4">
+				<button on:click={shareScore} class="flex-1 btn-secondary flex items-center justify-center gap-2">
+					<Share2 size={20} />
+					Share
+				</button>
+				<button on:click={playAgain} class="flex-1 btn-primary flex items-center justify-center gap-2">
+					<RefreshCw size={20} />
+					Play Again
+				</button>
+			</div>
+		</div>
+	</div>
+{/if}

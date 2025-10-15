@@ -156,9 +156,14 @@
 				</div>
 
 				<div>
-					<label for="password" class="block text-sm font-medium mb-2 dark:text-gray-300">
-						Password
-					</label>
+					<div class="flex items-center justify-between mb-2">
+						<label for="password" class="block text-sm font-medium dark:text-gray-300">
+							Password
+						</label>
+						<a href="/auth/forgot-password" class="text-xs text-primary dark:text-secondary hover:underline">
+							Forgot Password?
+						</a>
+					</div>
 					<div class="relative">
 						<Lock class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
 						<input

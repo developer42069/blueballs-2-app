@@ -58,11 +58,15 @@
 	});
 
 	async function loadProfile(userId: string) {
-		const { data } = await supabase
+		console.log('Loading profile for user:', userId);
+		const { data, error } = await supabase
 			.from('profiles')
 			.select('*')
 			.eq('id', userId)
 			.single();
+		console.log('Profile loaded:', data);
+		console.log('Profile load error:', error);
+		console.log('is_admin value:', data?.is_admin);
 		$profile = data;
 	}
 
@@ -133,44 +137,49 @@
 		</div>
 	</header>
 
-	<!-- Left Sidebar - Game Modes (Toggle-able on desktop) -->
+	<!-- Left Sidebar - Game Menu -->
 	<aside class="fixed top-16 left-0 h-[calc(100vh-4rem)] w-64 bg-primary dark:bg-dark-secondary shadow-lg transition-transform z-40 overflow-y-auto {leftMenuOpen ? 'translate-x-0' : '-translate-x-full'}">
-		<nav class="p-4 space-y-2">
+		<nav class="p-4 space-y-4">
 			<div class="flex items-center justify-between mb-4">
-				<h3 class="text-white font-bold text-sm uppercase">Game Modes</h3>
+				<h3 class="text-white font-bold text-sm uppercase">Menu</h3>
 				<button on:click={toggleLeftMenu} class="text-white hover:bg-white/10 p-1 rounded transition">
 					<X size={20} />
 				</button>
 			</div>
 
-			<div class="space-y-3">
-				<div>
-					<a href="/game/easy" on:click={closeLeftMenu} class="block w-full bg-primary dark:bg-accent text-white py-3 px-4 rounded-lg hover:bg-primary/80 dark:hover:bg-accent/80 transition border-2 border-secondary font-bold">
-						Easy Mode
+			<!-- Game Modes Section -->
+			<div>
+				<h4 class="text-white/70 text-xs font-bold uppercase mb-2 px-2">Game Mode</h4>
+				<div class="space-y-2">
+					<a href="/game/easy" on:click={closeLeftMenu} class="block w-full bg-blue-500 dark:bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-600 dark:hover:bg-blue-700 transition font-semibold text-sm">
+						Easy
 					</a>
-					<a href="/leaderboard" on:click={closeLeftMenu} class="block w-full text-white text-sm py-1 px-4 hover:underline mt-1">
-						Check Ranking
+					<a href="/game/medium" on:click={closeLeftMenu} class="block w-full bg-orange-500 text-white py-2 px-4 rounded-lg hover:bg-orange-600 transition font-semibold text-sm">
+						Medium
 					</a>
-				</div>
-
-				<div>
-					<a href="/game/medium" on:click={closeLeftMenu} class="block w-full bg-orange-500 text-white py-3 px-4 rounded-lg hover:bg-orange-600 transition font-bold">
-						Medium Mode
-					</a>
-					<a href="/leaderboard" on:click={closeLeftMenu} class="block w-full text-white text-sm py-1 px-4 hover:underline mt-1">
-						Check Ranking
-					</a>
-				</div>
-
-				<div>
-					<a href="/game/hard" on:click={closeLeftMenu} class="block w-full bg-secondary text-white py-3 px-4 rounded-lg hover:bg-pink-600 transition font-bold">
-						Hard Mode
-					</a>
-					<a href="/leaderboard" on:click={closeLeftMenu} class="block w-full text-white text-sm py-1 px-4 hover:underline mt-1">
-						Check Ranking
+					<a href="/game/hard" on:click={closeLeftMenu} class="block w-full bg-secondary text-white py-2 px-4 rounded-lg hover:bg-pink-600 transition font-semibold text-sm">
+						Hard
 					</a>
 				</div>
 			</div>
+
+			<!-- Ranking - Make it stand out -->
+			<a href="/leaderboard" on:click={closeLeftMenu} class="block w-full bg-gradient-to-r from-yellow-500 to-orange-500 text-white py-3 px-4 rounded-lg hover:from-yellow-600 hover:to-orange-600 transition font-bold text-center shadow-lg border-2 border-yellow-300">
+				<Trophy size={20} class="inline mr-2" />
+				Ranking
+			</a>
+
+			<!-- Friends -->
+			<a href="/friends" on:click={closeLeftMenu} class="block w-full bg-white/10 hover:bg-white/20 text-white py-2 px-4 rounded-lg transition font-semibold text-sm">
+				<Users size={18} class="inline mr-2" />
+				Friends
+			</a>
+
+			<!-- BB Club (Affiliate) -->
+			<a href="/affiliate" on:click={closeLeftMenu} class="block w-full bg-white/10 hover:bg-white/20 text-white py-2 px-4 rounded-lg transition font-semibold text-sm">
+				<DollarSign size={18} class="inline mr-2" />
+				BB Club
+			</a>
 		</nav>
 	</aside>
 

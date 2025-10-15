@@ -27,7 +27,7 @@ export {};
 
 declare module "$app/types" {
 	export interface AppTypes {
-		RouteId(): "/" | "/affiliate" | "/api" | "/api/lives" | "/api/lives/regen" | "/api/score" | "/api/stripe" | "/api/stripe/create-checkout" | "/api/stripe/webhook" | "/auth" | "/auth/callback" | "/auth/login" | "/auth/register" | "/bolengadmin" | "/chat" | "/dashboard" | "/friends" | "/game" | "/game/[difficulty]" | "/leaderboard" | "/profile" | "/profile/[id]" | "/settings" | "/subscribe";
+		RouteId(): "/" | "/affiliate" | "/api" | "/api/lives" | "/api/lives/regen" | "/api/score" | "/api/stripe" | "/api/stripe/create-checkout" | "/api/stripe/webhook" | "/auth" | "/auth/callback" | "/auth/forgot-password" | "/auth/login" | "/auth/register" | "/auth/reset-password" | "/bolengadmin" | "/chat" | "/dashboard" | "/friends" | "/game" | "/game/[difficulty]" | "/leaderboard" | "/profile" | "/profile/[id]" | "/settings" | "/subscribe";
 		RouteParams(): {
 			"/game/[difficulty]": { difficulty: string };
 			"/profile/[id]": { id: string }
@@ -44,8 +44,10 @@ declare module "$app/types" {
 			"/api/stripe/webhook": Record<string, never>;
 			"/auth": Record<string, never>;
 			"/auth/callback": Record<string, never>;
+			"/auth/forgot-password": Record<string, never>;
 			"/auth/login": Record<string, never>;
 			"/auth/register": Record<string, never>;
+			"/auth/reset-password": Record<string, never>;
 			"/bolengadmin": Record<string, never>;
 			"/chat": Record<string, never>;
 			"/dashboard": Record<string, never>;
@@ -58,7 +60,7 @@ declare module "$app/types" {
 			"/settings": Record<string, never>;
 			"/subscribe": Record<string, never>
 		};
-		Pathname(): "/" | "/affiliate" | "/affiliate/" | "/api" | "/api/" | "/api/lives" | "/api/lives/" | "/api/lives/regen" | "/api/lives/regen/" | "/api/score" | "/api/score/" | "/api/stripe" | "/api/stripe/" | "/api/stripe/create-checkout" | "/api/stripe/create-checkout/" | "/api/stripe/webhook" | "/api/stripe/webhook/" | "/auth" | "/auth/" | "/auth/callback" | "/auth/callback/" | "/auth/login" | "/auth/login/" | "/auth/register" | "/auth/register/" | "/bolengadmin" | "/bolengadmin/" | "/chat" | "/chat/" | "/dashboard" | "/dashboard/" | "/friends" | "/friends/" | "/game" | "/game/" | `/game/${string}` & {} | `/game/${string}/` & {} | "/leaderboard" | "/leaderboard/" | "/profile" | "/profile/" | `/profile/${string}` & {} | `/profile/${string}/` & {} | "/settings" | "/settings/" | "/subscribe" | "/subscribe/";
+		Pathname(): "/" | "/affiliate" | "/affiliate/" | "/api" | "/api/" | "/api/lives" | "/api/lives/" | "/api/lives/regen" | "/api/lives/regen/" | "/api/score" | "/api/score/" | "/api/stripe" | "/api/stripe/" | "/api/stripe/create-checkout" | "/api/stripe/create-checkout/" | "/api/stripe/webhook" | "/api/stripe/webhook/" | "/auth" | "/auth/" | "/auth/callback" | "/auth/callback/" | "/auth/forgot-password" | "/auth/forgot-password/" | "/auth/login" | "/auth/login/" | "/auth/register" | "/auth/register/" | "/auth/reset-password" | "/auth/reset-password/" | "/bolengadmin" | "/bolengadmin/" | "/chat" | "/chat/" | "/dashboard" | "/dashboard/" | "/friends" | "/friends/" | "/game" | "/game/" | `/game/${string}` & {} | `/game/${string}/` & {} | "/leaderboard" | "/leaderboard/" | "/profile" | "/profile/" | `/profile/${string}` & {} | `/profile/${string}/` & {} | "/settings" | "/settings/" | "/subscribe" | "/subscribe/";
 		ResolvedPathname(): `${"" | `/${string}`}${ReturnType<AppTypes['Pathname']>}`;
 		Asset(): string & {};
 	}

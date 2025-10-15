@@ -479,6 +479,7 @@ BEGIN
         high_score_easy,
         high_score_medium,
         high_score_hard,
+        profile_picture_url,
         profile_public,
         allow_friend_requests,
         is_admin
@@ -490,7 +491,7 @@ BEGIN
         COALESCE(NEW.raw_user_meta_data->>'country_code', 'US'),
         COALESCE((NEW.raw_user_meta_data->>'region')::region, 'north_america'),
         'free',
-        4,
+        100,
         100,
         4,
         NOW(),
@@ -501,6 +502,7 @@ BEGIN
         0,
         0,
         0,
+        NEW.raw_user_meta_data->>'avatar_url',
         true,
         true,
         false

@@ -67,16 +67,36 @@
 	];
 
 	onMount(async () => {
+		// Wait a bit for user to load
+		await new Promise(resolve => setTimeout(resolve, 100));
+
+		console.log('Admin page - User:', $user);
+		console.log('Admin page - User email:', $user?.email);
+		console.log('Admin page - Profile:', $profile);
+
 		if (!$user) {
+			console.log('No user, redirecting to login');
 			goto('/auth/login');
 			return;
 		}
 
-		if (!$profile?.is_admin) {
+		// Check if user is admin by email (hardcoded)
+		const adminEmails = ['canbeerliquor@gmail.com'];
+		const userEmail = $user.email || '';
+		const isAdmin = adminEmails.includes(userEmail);
+
+		console.log('Checking admin access...');
+		console.log('User email:', userEmail);
+		console.log('Admin emails:', adminEmails);
+		console.log('Is admin:', isAdmin);
+
+		if (!isAdmin) {
+			console.log('Not admin, redirecting to home');
 			goto('/');
 			return;
 		}
 
+		console.log('✅ Admin access granted!');
 		await loadDashboardStats();
 		loading = false;
 	});
