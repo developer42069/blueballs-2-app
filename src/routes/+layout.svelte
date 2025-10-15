@@ -1,9 +1,11 @@
 <script lang="ts">
   import "../app.css";
-  import { onMount } from "svelte";
+  import { onMount, onDestroy } from "svelte";
   import { supabase } from "$lib/supabase";
   import { user, profile, loading } from "$lib/stores/auth";
   import { theme } from "$lib/stores/theme";
+  import { notifications, unreadCount, notificationChannel } from "$lib/stores/notifications";
+  import type { Notification } from "$lib/stores/notifications";
   import { goto } from "$app/navigation";
   import { page } from "$app/stores";
   import {
@@ -20,10 +22,12 @@
     Settings,
     Download,
     LayoutDashboard,
+    Check,
   } from "lucide-svelte";
 
   let rightMenuOpen = false;
   let leftMenuOpen = false;
+  let notificationMenuOpen = false;
   let isMobile = false;
 
   onMount(async () => {
@@ -47,6 +51,7 @@
       if (!wasMobile && isMobile) {
         rightMenuOpen = false;
         leftMenuOpen = false;
+        notificationMenuOpen = false;
       }
     });
 
@@ -57,6 +62,8 @@
     if (session) {
       $user = session.user;
       await loadProfile(session.user.id);
+      await loadNotifications();
+      subscribeToNotifications();
     }
     $loading = false;
 
@@ -67,12 +74,26 @@
       $user = session?.user ?? null;
       if (session?.user) {
         await loadProfile(session.user.id);
+        await loadNotifications();
+        subscribeToNotifications();
       } else {
         $profile = null;
+        $notifications = [];
+        $unreadCount = 0;
+        if ($notificationChannel) {
+          await supabase.removeChannel($notificationChannel);
+          $notificationChannel = null;
+        }
       }
     });
 
     return () => subscription.unsubscribe();
+  });
+
+  onDestroy(async () => {
+    if ($notificationChannel) {
+      await supabase.removeChannel($notificationChannel);
+    }
   });
 
   async function loadProfile(userId: string) {
@@ -109,10 +130,133 @@
     if (isMobile) leftMenuOpen = false;
   }
 
-  function handleNotificationClick() {
-    // Placeholder for notification functionality
-    // Will be implemented in Phase 2
-    alert("Notifications coming soon! 🔔");
+  function toggleNotificationMenu() {
+    notificationMenuOpen = !notificationMenuOpen;
+    if (notificationMenuOpen) {
+      rightMenuOpen = false;
+    }
+  }
+
+  function closeNotificationMenu() {
+    notificationMenuOpen = false;
+  }
+
+  async function loadNotifications() {
+    if (!$user) return;
+
+    const { data, error } = await supabase
+      .from('notifications')
+      .select(`
+        *,
+        from_profile:from_user_id (
+          username,
+          profile_picture_url
+        )
+      `)
+      .eq('user_id', $user.id)
+      .order('created_at', { ascending: false })
+      .limit(20);
+
+    if (data) {
+      $notifications = data;
+      $unreadCount = data.filter(n => !n.read).length;
+    }
+  }
+
+  function subscribeToNotifications() {
+    if (!$user || $notificationChannel) return;
+
+    const channel = supabase
+      .channel(`notifications-${$user.id}`)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'notifications',
+        filter: `user_id=eq.${$user.id}`
+      }, async (payload) => {
+        // Load the notification with profile data
+        const { data } = await supabase
+          .from('notifications')
+          .select(`
+            *,
+            from_profile:from_user_id (
+              username,
+              profile_picture_url
+            )
+          `)
+          .eq('id', payload.new.id)
+          .single();
+
+        if (data) {
+          $notifications = [data, ...$notifications];
+          $unreadCount = $unreadCount + 1;
+        }
+      })
+      .subscribe();
+
+    $notificationChannel = channel;
+  }
+
+  async function markAsRead(notificationId: string) {
+    if (!$user) return;
+
+    const session = await supabase.auth.getSession();
+    const token = session.data.session?.access_token;
+
+    await fetch('/api/notifications/mark-read', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ notificationId })
+    });
+
+    $notifications = $notifications.map(n =>
+      n.id === notificationId ? { ...n, read: true } : n
+    );
+    $unreadCount = Math.max(0, $unreadCount - 1);
+  }
+
+  async function markAllAsRead() {
+    if (!$user) return;
+
+    const session = await supabase.auth.getSession();
+    const token = session.data.session?.access_token;
+
+    await fetch('/api/notifications/mark-all-read', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    $notifications = $notifications.map(n => ({ ...n, read: true }));
+    $unreadCount = 0;
+  }
+
+  function handleNotificationClick(notification: Notification) {
+    markAsRead(notification.id);
+    if (notification.link) {
+      goto(notification.link);
+      closeNotificationMenu();
+    }
+  }
+
+  function getNotificationIcon(type: string) {
+    switch (type) {
+      case 'friend_request':
+      case 'friend_accepted':
+        return Users;
+      case 'chat_message':
+        return MessageCircle;
+      case 'level_up':
+      case 'rank_up':
+        return Trophy;
+      default:
+        return Bell;
+    }
   }
 </script>
 
@@ -143,13 +287,16 @@
       <div class="flex items-center gap-2">
         {#if $user}
           <button
-            on:click={handleNotificationClick}
+            on:click={toggleNotificationMenu}
             class="text-white p-2 hover:bg-white/10 rounded-lg transition relative"
             title="Notifications"
           >
             <Bell size={20} />
-            <!-- Notification badge placeholder (will show count in Phase 2) -->
-            <!-- <span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">3</span> -->
+            {#if $unreadCount > 0}
+              <span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                {$unreadCount > 9 ? '9+' : $unreadCount}
+              </span>
+            {/if}
           </button>
         {/if}
         <!-- Profile Picture or Empty Circle -->
@@ -359,6 +506,80 @@
     </nav>
   </aside>
 
+  <!-- Notification Panel -->
+  <aside
+    class="fixed top-16 right-0 h-[calc(100vh-4rem)] w-80 md:w-96 bg-white dark:bg-dark-secondary shadow-lg transition-transform z-40 overflow-y-auto {notificationMenuOpen
+      ? 'translate-x-0'
+      : 'translate-x-full'}"
+  >
+    <div class="p-4">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="font-bold text-lg dark:text-white">Notifications</h3>
+        <button
+          on:click={closeNotificationMenu}
+          class="text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10 p-1 rounded transition"
+        >
+          <X size={20} />
+        </button>
+      </div>
+
+      {#if $unreadCount > 0}
+        <button
+          on:click={markAllAsRead}
+          class="w-full mb-4 text-sm text-primary dark:text-blue-400 hover:underline flex items-center justify-center gap-1"
+        >
+          <Check size={16} />
+          Mark all as read
+        </button>
+      {/if}
+
+      <!-- Notifications List -->
+      <div class="space-y-2">
+        {#if $notifications.length === 0}
+          <div class="text-center py-12 text-gray-500 dark:text-gray-400">
+            <Bell size={48} class="mx-auto mb-2 opacity-50" />
+            <p>No notifications yet</p>
+          </div>
+        {:else}
+          {#each $notifications as notification}
+            {@const IconComponent = getNotificationIcon(notification.type)}
+            <button
+              on:click={() => handleNotificationClick(notification)}
+              class="w-full text-left p-3 rounded-lg transition {notification.read
+                ? 'bg-gray-50 dark:bg-dark-accent'
+                : 'bg-blue-50 dark:bg-blue-900/20 border-l-4 border-primary'} hover:bg-gray-100 dark:hover:bg-white/10"
+            >
+              <div class="flex items-start gap-3">
+                <div class="flex-shrink-0 mt-1">
+                  {#if notification.from_profile?.profile_picture_url}
+                    <img
+                      src={notification.from_profile.profile_picture_url}
+                      alt={notification.from_profile.username}
+                      class="w-10 h-10 rounded-full object-cover"
+                    />
+                  {:else}
+                    <div class="w-10 h-10 rounded-full bg-primary dark:bg-accent flex items-center justify-center">
+                      <svelte:component this={IconComponent} size={20} class="text-white" />
+                    </div>
+                  {/if}
+                </div>
+                <div class="flex-1 min-w-0">
+                  <p class="text-sm dark:text-white">{notification.message}</p>
+                  <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    {new Date(notification.created_at).toLocaleDateString()} at {new Date(notification.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                  </p>
+                </div>
+                {#if !notification.read}
+                  <div class="w-2 h-2 bg-primary rounded-full flex-shrink-0 mt-2"></div>
+                {/if}
+              </div>
+            </button>
+          {/each}
+        {/if}
+      </div>
+    </div>
+  </aside>
+
   <!-- Main Content -->
   <main class="pt-16 {leftMenuOpen && !isMobile ? 'ml-64' : ''} transition-all">
     <slot />
@@ -377,6 +598,13 @@
       on:click={closeRightMenu}
       class="fixed inset-0 bg-black/{isMobile ? '50' : '30'} z-30"
       aria-label="Close menu"
+    ></button>
+  {/if}
+  {#if notificationMenuOpen}
+    <button
+      on:click={closeNotificationMenu}
+      class="fixed inset-0 bg-black/{isMobile ? '50' : '30'} z-30"
+      aria-label="Close notifications"
     ></button>
   {/if}
 </div>

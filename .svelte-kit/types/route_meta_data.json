@@ -4,6 +4,12 @@
 	"/api/lives/regen": [
 		"src/routes/api/lives/regen/+server.ts"
 	],
+	"/api/notifications/mark-all-read": [
+		"src/routes/api/notifications/mark-all-read/+server.ts"
+	],
+	"/api/notifications/mark-read": [
+		"src/routes/api/notifications/mark-read/+server.ts"
+	],
 	"/api/score": [
 		"src/routes/api/score/+server.ts"
 	],
@@ -20,6 +26,7 @@
 	"/auth/reset-password": [],
 	"/bolengadmin": [],
 	"/chat": [],
+	"/chat/friends": [],
 	"/dashboard": [],
 	"/friends": [],
 	"/game/[difficulty]": [],

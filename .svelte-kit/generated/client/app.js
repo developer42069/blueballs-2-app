@@ -18,7 +18,8 @@ export const nodes = [
 	() => import('./nodes/14'),
 	() => import('./nodes/15'),
 	() => import('./nodes/16'),
-	() => import('./nodes/17')
+	() => import('./nodes/17'),
+	() => import('./nodes/18')
 ];
 
 export const server_loads = [];
@@ -33,13 +34,14 @@ export const dictionary = {
 		"/auth/reset-password": [8],
 		"/bolengadmin": [9],
 		"/chat": [10],
-		"/dashboard": [11],
-		"/friends": [12],
-		"/game/[difficulty]": [13],
-		"/leaderboard": [14],
-		"/profile/[id]": [15],
-		"/settings": [16],
-		"/subscribe": [17]
+		"/chat/friends": [11],
+		"/dashboard": [12],
+		"/friends": [13],
+		"/game/[difficulty]": [14],
+		"/leaderboard": [15],
+		"/profile/[id]": [16],
+		"/settings": [17],
+		"/subscribe": [18]
 	};
 
 export const hooks = {
