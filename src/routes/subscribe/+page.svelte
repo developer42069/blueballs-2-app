@@ -28,12 +28,14 @@
 
 		try {
 			// Call your backend API to create Stripe checkout session
-			const response = await fetch('/api/create-checkout', {
+			const response = await fetch('/api/stripe/create-checkout', {
 				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
+				headers: {
+					'Content-Type': 'application/json',
+					'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
+				},
 				body: JSON.stringify({
-					tier,
-					userId: $user.id
+					tier
 				})
 			});
 
