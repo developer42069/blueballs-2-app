@@ -1,0 +1,377 @@
+<script lang="ts">
+	import { onMount } from 'svelte';
+	import { user, profile } from '$lib/stores/auth';
+	import { goto } from '$app/navigation';
+	import { supabase } from '$lib/supabase';
+	import { MEMBERSHIP_TIERS } from '$lib/utils/gameConfig';
+	import { Heart, Zap, Star, CheckCircle, X, Crown, Image, MessageCircle, XCircle } from 'lucide-svelte';
+
+	let loading = true;
+	let processingCheckout = false;
+	let error = '';
+	let success = '';
+	let cancelLoading = false;
+
+	onMount(async () => {
+		if (!$user) {
+			goto('/auth/login');
+			return;
+		}
+		loading = false;
+	});
+
+	async function handleSubscribe(tier: 'mid' | 'big') {
+		if (!$user) return;
+
+		processingCheckout = true;
+		error = '';
+
+		try {
+			// Call your backend API to create Stripe checkout session
+			const response = await fetch('/api/create-checkout', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					tier,
+					userId: $user.id
+				})
+			});
+
+			if (!response.ok) {
+				const data = await response.json();
+				throw new Error(data.error || 'Failed to create checkout session');
+			}
+
+			const { url } = await response.json();
+
+			// Redirect to Stripe Checkout
+			window.location.href = url;
+		} catch (e: any) {
+			error = e.message || 'Failed to start checkout process';
+			processingCheckout = false;
+		}
+	}
+
+	async function handleCancelSubscription() {
+		if (!$user || !$profile) return;
+
+		if (!confirm('Are you sure you want to cancel your subscription? You will lose access to premium features at the end of your billing period.')) {
+			return;
+		}
+
+		cancelLoading = true;
+		error = '';
+		success = '';
+
+		try {
+			const response = await fetch('/api/cancel-subscription', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					userId: $user.id
+				})
+			});
+
+			if (!response.ok) {
+				const data = await response.json();
+				throw new Error(data.error || 'Failed to cancel subscription');
+			}
+
+			success = 'Subscription cancelled successfully. You will retain access until the end of your billing period.';
+
+			// Reload profile
+			const { data } = await supabase
+				.from('profiles')
+				.select('*')
+				.eq('id', $user.id)
+				.single();
+
+			if (data) $profile = data;
+		} catch (e: any) {
+			error = e.message || 'Failed to cancel subscription';
+		} finally {
+			cancelLoading = false;
+		}
+	}
+
+	function formatDate(dateString: string | null) {
+		if (!dateString) return 'N/A';
+		return new Date(dateString).toLocaleDateString('en-US', {
+			year: 'numeric',
+			month: 'long',
+			day: 'numeric'
+		});
+	}
+</script>
+
+<svelte:head>
+	<title>Subscribe - Blue Balls</title>
+</svelte:head>
+
+{#if loading}
+	<div class="min-h-screen flex items-center justify-center">
+		<div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+	</div>
+{:else}
+	<div class="min-h-screen p-4">
+		<div class="max-w-7xl mx-auto">
+			<h1 class="text-3xl md:text-4xl font-bold mb-2 text-center">Choose Your Plan</h1>
+			<p class="text-center dark:text-gray-300 mb-8">Upgrade for more lives, custom profiles, and more!</p>
+
+			{#if error}
+				<div class="bg-red-100 dark:bg-red-900/20 border border-red-400 text-red-700 dark:text-red-400 px-4 py-3 rounded mb-4 max-w-2xl mx-auto">
+					{error}
+				</div>
+			{/if}
+
+			{#if success}
+				<div class="bg-green-100 dark:bg-green-900/20 border border-green-400 text-green-700 dark:text-green-400 px-4 py-3 rounded mb-4 max-w-2xl mx-auto">
+					{success}
+				</div>
+			{/if}
+
+			<!-- Current Subscription Status -->
+			{#if $profile && $profile.membership_tier !== 'free'}
+				<div class="card max-w-2xl mx-auto mb-8 bg-gradient-to-br from-primary to-secondary text-white">
+					<div class="flex items-center justify-between flex-wrap gap-4">
+						<div>
+							<h3 class="text-xl font-bold mb-1">Current Plan: {MEMBERSHIP_TIERS[$profile.membership_tier].name}</h3>
+							<p class="text-sm opacity-90">
+								{#if $profile.subscription_ends_at}
+									Renews on: {formatDate($profile.subscription_ends_at)}
+								{:else}
+									Active
+								{/if}
+							</p>
+						</div>
+						<button
+							on:click={handleCancelSubscription}
+							class="btn-primary bg-red-500 hover:bg-red-600 flex items-center gap-2"
+							disabled={cancelLoading}
+						>
+							<XCircle size={18} />
+							{cancelLoading ? 'Cancelling...' : 'Cancel Subscription'}
+						</button>
+					</div>
+				</div>
+			{/if}
+
+			<!-- Pricing Cards -->
+			<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+				<!-- Free Tier -->
+				<div class="card relative {$profile?.membership_tier === 'free' ? 'ring-2 ring-primary' : ''}">
+					{#if $profile?.membership_tier === 'free'}
+						<div class="absolute top-4 right-4 bg-primary text-white text-xs font-bold px-3 py-1 rounded-full">
+							CURRENT
+						</div>
+					{/if}
+					<div class="text-center mb-6">
+						<Heart size={48} class="mx-auto mb-2 text-blue-500" />
+						<h2 class="text-2xl font-bold mb-2">BlueBalls</h2>
+						<div class="text-4xl font-bold mb-2">FREE</div>
+						<p class="text-sm dark:text-gray-300">Perfect for casual players</p>
+					</div>
+
+					<ul class="space-y-3 mb-6">
+						<li class="flex items-start gap-2">
+							<CheckCircle size={18} class="text-green-600 dark:text-green-400 mt-0.5 flex-shrink-0" />
+							<span class="text-sm">4 lives per hour</span>
+						</li>
+						<li class="flex items-start gap-2">
+							<CheckCircle size={18} class="text-green-600 dark:text-green-400 mt-0.5 flex-shrink-0" />
+							<span class="text-sm">Max 100 lives/day</span>
+						</li>
+						<li class="flex items-start gap-2">
+							<CheckCircle size={18} class="text-green-600 dark:text-green-400 mt-0.5 flex-shrink-0" />
+							<span class="text-sm">Basic profile</span>
+						</li>
+						<li class="flex items-start gap-2">
+							<X size={18} class="text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
+							<span class="text-sm">No custom profile picture</span>
+						</li>
+						<li class="flex items-start gap-2">
+							<X size={18} class="text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
+							<span class="text-sm">Chat cooldown: 10 minutes</span>
+						</li>
+					</ul>
+
+					{#if $profile?.membership_tier !== 'free'}
+						<button
+							on:click={handleCancelSubscription}
+							class="btn-primary bg-gray-500 hover:bg-gray-600 w-full"
+							disabled={cancelLoading}
+						>
+							Downgrade to Free
+						</button>
+					{:else}
+						<button class="btn-primary bg-gray-400 cursor-not-allowed w-full" disabled>
+							Current Plan
+						</button>
+					{/if}
+				</div>
+
+				<!-- Mid Tier -->
+				<div class="card relative {$profile?.membership_tier === 'mid' ? 'ring-2 ring-orange-500' : ''}">
+					{#if $profile?.membership_tier === 'mid'}
+						<div class="absolute top-4 right-4 bg-orange-500 text-white text-xs font-bold px-3 py-1 rounded-full">
+							CURRENT
+						</div>
+					{/if}
+					<div class="text-center mb-6">
+						<Zap size={48} class="mx-auto mb-2 text-orange-500" />
+						<h2 class="text-2xl font-bold mb-2">BlueBalls Mid</h2>
+						<div class="text-4xl font-bold mb-2">
+							$2<span class="text-lg">/month</span>
+						</div>
+						<p class="text-sm dark:text-gray-300">For dedicated players</p>
+					</div>
+
+					<ul class="space-y-3 mb-6">
+						<li class="flex items-start gap-2">
+							<CheckCircle size={18} class="text-green-600 dark:text-green-400 mt-0.5 flex-shrink-0" />
+							<span class="text-sm font-bold">40 lives per hour</span>
+						</li>
+						<li class="flex items-start gap-2">
+							<CheckCircle size={18} class="text-green-600 dark:text-green-400 mt-0.5 flex-shrink-0" />
+							<span class="text-sm font-bold">Max 1000 lives/day</span>
+						</li>
+						<li class="flex items-start gap-2">
+							<Image size={18} class="text-orange-600 dark:text-orange-400 mt-0.5 flex-shrink-0" />
+							<span class="text-sm font-bold">Custom profile picture</span>
+						</li>
+						<li class="flex items-start gap-2">
+							<MessageCircle size={18} class="text-orange-600 dark:text-orange-400 mt-0.5 flex-shrink-0" />
+							<span class="text-sm font-bold">Chat cooldown: 3 minutes</span>
+						</li>
+						<li class="flex items-start gap-2">
+							<Star size={18} class="text-orange-600 dark:text-orange-400 mt-0.5 flex-shrink-0" />
+							<span class="text-sm">Priority support</span>
+						</li>
+					</ul>
+
+					{#if $profile?.membership_tier === 'mid'}
+						<button class="btn-primary bg-gray-400 cursor-not-allowed w-full" disabled>
+							Current Plan
+						</button>
+					{:else if $profile?.membership_tier === 'big'}
+						<button class="btn-primary bg-gray-500 hover:bg-gray-600 w-full">
+							Downgrade to Mid
+						</button>
+					{:else}
+						<button
+							on:click={() => handleSubscribe('mid')}
+							class="btn-primary bg-orange-500 hover:bg-orange-600 w-full"
+							disabled={processingCheckout}
+						>
+							{processingCheckout ? 'Processing...' : 'Upgrade to Mid'}
+						</button>
+					{/if}
+				</div>
+
+				<!-- Big Tier -->
+				<div class="card relative bg-gradient-to-br from-secondary to-pink-600 text-white {$profile?.membership_tier === 'big' ? 'ring-4 ring-yellow-400' : ''}">
+					<div class="absolute top-4 right-4 bg-yellow-400 text-gray-900 text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1">
+						<Crown size={14} />
+						{$profile?.membership_tier === 'big' ? 'CURRENT' : 'POPULAR'}
+					</div>
+
+					<div class="text-center mb-6">
+						<Crown size={48} class="mx-auto mb-2" />
+						<h2 class="text-2xl font-bold mb-2">BlueBalls Big</h2>
+						<div class="text-4xl font-bold mb-2">
+							$10<span class="text-lg">/month</span>
+						</div>
+						<p class="text-sm opacity-90">Ultimate gaming experience</p>
+					</div>
+
+					<ul class="space-y-3 mb-6">
+						<li class="flex items-start gap-2">
+							<CheckCircle size={18} class="mt-0.5 flex-shrink-0" />
+							<span class="text-sm font-bold">UNLIMITED lives</span>
+						</li>
+						<li class="flex items-start gap-2">
+							<CheckCircle size={18} class="mt-0.5 flex-shrink-0" />
+							<span class="text-sm font-bold">No daily limits</span>
+						</li>
+						<li class="flex items-start gap-2">
+							<Image size={18} class="mt-0.5 flex-shrink-0" />
+							<span class="text-sm font-bold">Custom profile picture</span>
+						</li>
+						<li class="flex items-start gap-2">
+							<MessageCircle size={18} class="mt-0.5 flex-shrink-0" />
+							<span class="text-sm font-bold">Chat cooldown: 1 minute</span>
+						</li>
+						<li class="flex items-start gap-2">
+							<Star size={18} class="mt-0.5 flex-shrink-0" />
+							<span class="text-sm font-bold">Ad-free experience</span>
+						</li>
+						<li class="flex items-start gap-2">
+							<Crown size={18} class="mt-0.5 flex-shrink-0" />
+							<span class="text-sm font-bold">Exclusive Big badge</span>
+						</li>
+					</ul>
+
+					{#if $profile?.membership_tier === 'big'}
+						<button class="btn-primary bg-white/20 cursor-not-allowed w-full" disabled>
+							Current Plan
+						</button>
+					{:else}
+						<button
+							on:click={() => handleSubscribe('big')}
+							class="btn-primary bg-white text-primary hover:bg-gray-100 w-full font-bold"
+							disabled={processingCheckout}
+						>
+							{processingCheckout ? 'Processing...' : 'Upgrade to Big'}
+						</button>
+					{/if}
+				</div>
+			</div>
+
+			<!-- FAQ Section -->
+			<div class="card max-w-4xl mx-auto">
+				<h2 class="text-2xl font-bold mb-6 text-center">Frequently Asked Questions</h2>
+
+				<div class="space-y-6">
+					<div>
+						<h3 class="font-bold mb-2">How do lives work?</h3>
+						<p class="dark:text-gray-300 text-sm">
+							Lives regenerate automatically based on your membership tier. Free members get 4 per hour,
+							Mid members get 40 per hour, and Big members have unlimited lives with no waiting!
+						</p>
+					</div>
+
+					<div>
+						<h3 class="font-bold mb-2">Can I cancel anytime?</h3>
+						<p class="dark:text-gray-300 text-sm">
+							Yes! You can cancel your subscription at any time. You'll retain access to premium features
+							until the end of your billing period.
+						</p>
+					</div>
+
+					<div>
+						<h3 class="font-bold mb-2">What payment methods do you accept?</h3>
+						<p class="dark:text-gray-300 text-sm">
+							We accept all major credit cards, debit cards, and various other payment methods through Stripe.
+						</p>
+					</div>
+
+					<div>
+						<h3 class="font-bold mb-2">What happens if I downgrade?</h3>
+						<p class="dark:text-gray-300 text-sm">
+							If you downgrade, you'll lose access to premium features at the end of your current billing period.
+							Your game progress and stats will be preserved.
+						</p>
+					</div>
+
+					<div>
+						<h3 class="font-bold mb-2">Do you offer refunds?</h3>
+						<p class="dark:text-gray-300 text-sm">
+							We offer refunds within 7 days of purchase if you're not satisfied. Contact our support team
+							for assistance.
+						</p>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+{/if}

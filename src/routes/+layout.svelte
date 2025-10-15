@@ -1,0 +1,235 @@
+<script lang="ts">
+	import '../app.css';
+	import { onMount } from 'svelte';
+	import { supabase } from '$lib/supabase';
+	import { user, profile, loading } from '$lib/stores/auth';
+	import { theme } from '$lib/stores/theme';
+	import { goto } from '$app/navigation';
+	import { page } from '$app/stores';
+	import { Menu, X, Sun, Moon, User, LogOut, Home, Trophy, MessageCircle, Users, DollarSign, Settings, Download } from 'lucide-svelte';
+
+	let rightMenuOpen = false;
+	let leftMenuOpen = false;
+	let isMobile = false;
+
+	onMount(async () => {
+		// Check viewport size
+		isMobile = window.innerWidth <= 768;
+
+		// Open left menu by default on desktop
+		if (!isMobile) {
+			leftMenuOpen = true;
+		}
+
+		window.addEventListener('resize', () => {
+			const wasMobile = isMobile;
+			isMobile = window.innerWidth <= 768;
+
+			// If switching to desktop, open left menu
+			if (wasMobile && !isMobile) {
+				leftMenuOpen = true;
+			}
+			// If switching to mobile, close both
+			if (!wasMobile && isMobile) {
+				rightMenuOpen = false;
+				leftMenuOpen = false;
+			}
+		});
+
+		// Get initial session
+		const { data: { session } } = await supabase.auth.getSession();
+		if (session) {
+			$user = session.user;
+			await loadProfile(session.user.id);
+		}
+		$loading = false;
+
+		// Listen for auth changes
+		const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+			$user = session?.user ?? null;
+			if (session?.user) {
+				await loadProfile(session.user.id);
+			} else {
+				$profile = null;
+			}
+		});
+
+		return () => subscription.unsubscribe();
+	});
+
+	async function loadProfile(userId: string) {
+		const { data } = await supabase
+			.from('profiles')
+			.select('*')
+			.eq('id', userId)
+			.single();
+		$profile = data;
+	}
+
+	async function handleLogout() {
+		await supabase.auth.signOut();
+		goto('/');
+	}
+
+	function toggleRightMenu() {
+		rightMenuOpen = !rightMenuOpen;
+	}
+
+	function toggleLeftMenu() {
+		leftMenuOpen = !leftMenuOpen;
+	}
+
+	function closeRightMenu() {
+		rightMenuOpen = false;
+	}
+
+	function closeLeftMenu() {
+		if (isMobile) leftMenuOpen = false;
+	}
+
+	function toggleTheme() {
+		$theme = $theme === 'dark' ? 'light' : 'dark';
+	}
+</script>
+
+<div class="min-h-screen">
+	<!-- Header -->
+	<header class="fixed top-0 left-0 right-0 z-50 bg-primary dark:bg-accent shadow-lg">
+		<div class="flex items-center justify-between px-4 py-3">
+			<!-- Left: Hamburger for left menu -->
+			<button on:click={toggleLeftMenu} class="text-white p-2 hover:bg-white/10 rounded-lg transition">
+				<Menu size={24} />
+			</button>
+
+			<!-- Center: Logo/Title -->
+			<a href="/" class="absolute left-1/2 transform -translate-x-1/2 font-rubik font-bold text-xl md:text-2xl text-white hover:scale-105 transition-transform" style="text-shadow: 2px 2px 0 #00008B, -2px -2px 0 #00008B, 2px -2px 0 #00008B, -2px 2px 0 #00008B;">
+				BLUEBALLS.LOL
+			</a>
+
+			<!-- Right: Theme + Profile Picture/Icon -->
+			<div class="flex items-center gap-2">
+				<button on:click={toggleTheme} class="text-white p-2 hover:bg-white/10 rounded-lg transition">
+					{#if $theme === 'dark'}
+						<Sun size={20} />
+					{:else}
+						<Moon size={20} />
+					{/if}
+				</button>
+				<!-- Profile Picture or Empty Circle -->
+				<button on:click={toggleRightMenu} class="hover:scale-110 transition-transform">
+					{#if $user && $profile?.profile_picture_url}
+						<img src={$profile.profile_picture_url} alt="Profile" class="w-8 h-8 rounded-full border-2 border-white object-cover" />
+					{:else if $user}
+						<!-- Circle with initial -->
+						<div class="w-8 h-8 rounded-full bg-secondary border-2 border-white flex items-center justify-center text-white font-bold text-sm">
+							{$profile?.username?.[0]?.toUpperCase() || 'U'}
+						</div>
+					{:else}
+						<!-- Empty circle for non-logged in users -->
+						<div class="w-8 h-8 rounded-full border-2 border-white bg-white/20"></div>
+					{/if}
+				</button>
+			</div>
+		</div>
+	</header>
+
+	<!-- Left Sidebar - Game Modes (Toggle-able on desktop) -->
+	<aside class="fixed top-16 left-0 h-[calc(100vh-4rem)] w-64 bg-primary dark:bg-dark-secondary shadow-lg transition-transform z-40 overflow-y-auto {leftMenuOpen ? 'translate-x-0' : '-translate-x-full'}">
+		<nav class="p-4 space-y-2">
+			<div class="flex items-center justify-between mb-4">
+				<h3 class="text-white font-bold text-sm uppercase">Game Modes</h3>
+				<button on:click={toggleLeftMenu} class="text-white hover:bg-white/10 p-1 rounded transition">
+					<X size={20} />
+				</button>
+			</div>
+
+			<div class="space-y-3">
+				<div>
+					<a href="/game/easy" on:click={closeLeftMenu} class="block w-full bg-primary dark:bg-accent text-white py-3 px-4 rounded-lg hover:bg-primary/80 dark:hover:bg-accent/80 transition border-2 border-secondary font-bold">
+						Easy Mode
+					</a>
+					<a href="/leaderboard" on:click={closeLeftMenu} class="block w-full text-white text-sm py-1 px-4 hover:underline mt-1">
+						Check Ranking
+					</a>
+				</div>
+
+				<div>
+					<a href="/game/medium" on:click={closeLeftMenu} class="block w-full bg-orange-500 text-white py-3 px-4 rounded-lg hover:bg-orange-600 transition font-bold">
+						Medium Mode
+					</a>
+					<a href="/leaderboard" on:click={closeLeftMenu} class="block w-full text-white text-sm py-1 px-4 hover:underline mt-1">
+						Check Ranking
+					</a>
+				</div>
+
+				<div>
+					<a href="/game/hard" on:click={closeLeftMenu} class="block w-full bg-secondary text-white py-3 px-4 rounded-lg hover:bg-pink-600 transition font-bold">
+						Hard Mode
+					</a>
+					<a href="/leaderboard" on:click={closeLeftMenu} class="block w-full text-white text-sm py-1 px-4 hover:underline mt-1">
+						Check Ranking
+					</a>
+				</div>
+			</div>
+		</nav>
+	</aside>
+
+	<!-- Right Panel - User Menu -->
+	<aside class="fixed top-16 right-0 h-[calc(100vh-4rem)] w-64 bg-primary dark:bg-dark-secondary shadow-lg transition-transform z-40 overflow-y-auto {rightMenuOpen ? 'translate-x-0' : 'translate-x-full'}">
+		<nav class="p-4 space-y-2">
+			<div class="flex items-center justify-between mb-4">
+				<h3 class="text-white font-bold text-sm uppercase">Menu</h3>
+				<button on:click={toggleRightMenu} class="text-white hover:bg-white/10 p-1 rounded transition">
+					<X size={20} />
+				</button>
+			</div>
+			{#if $user && $profile?.membership_tier !== 'big'}
+				<a href="/subscribe" on:click={closeRightMenu} class="block w-full bg-gradient-to-r from-secondary to-pink-600 text-white font-bold py-3 px-4 rounded-lg text-center hover:scale-105 transition-transform shadow-lg">
+					Upgrade Now
+				</a>
+			{/if}
+
+			{#if $user}
+				<a href="/chat" on:click={closeRightMenu} class="flex items-center gap-2 text-white py-2 px-4 rounded-lg hover:bg-white/10 transition">
+					<MessageCircle size={18} /> Player Chat
+				</a>
+				<a href="/dashboard" on:click={closeRightMenu} class="flex items-center gap-2 text-white py-2 px-4 rounded-lg hover:bg-white/10 transition">
+					<User size={18} /> Player Dashboard
+				</a>
+				<a href="/profile/{$user.id}" on:click={closeRightMenu} class="flex items-center gap-2 text-white py-2 px-4 rounded-lg hover:bg-white/10 transition">
+					<User size={18} /> Profile
+				</a>
+				<a href="/settings" on:click={closeRightMenu} class="flex items-center gap-2 text-white py-2 px-4 rounded-lg hover:bg-white/10 transition">
+					<Settings size={18} /> Settings
+				</a>
+			{/if}
+
+			<button on:click={() => { window.alert('PWA Download: Add this app to your home screen!'); closeRightMenu(); }} class="flex items-center gap-2 w-full text-white py-3 px-4 rounded-lg hover:bg-white/10 transition bg-gradient-to-r from-yellow-500 to-orange-500 font-bold shadow-lg">
+				<Download size={18} /> Download App
+			</button>
+
+			{#if $user}
+				<button on:click={handleLogout} class="flex items-center gap-2 w-full text-white py-2 px-4 rounded-lg hover:bg-red-600 transition mt-4">
+					<LogOut size={18} /> Logout
+				</button>
+			{:else}
+				<a href="/auth/login" on:click={closeRightMenu} class="block w-full bg-secondary text-white font-bold py-2 px-4 rounded-lg text-center hover:bg-pink-600 transition mt-4">
+					Login / Register
+				</a>
+			{/if}
+		</nav>
+	</aside>
+
+	<!-- Main Content -->
+	<main class="pt-16 {leftMenuOpen && !isMobile ? 'ml-64' : ''} transition-all">
+		<slot />
+	</main>
+
+	<!-- Click outside to close menus -->
+	{#if leftMenuOpen && isMobile}
+		<button on:click={closeLeftMenu} class="fixed inset-0 bg-black/50 z-30" aria-label="Close menu"></button>
+	{/if}
+	{#if rightMenuOpen}
+		<button on:click={closeRightMenu} class="fixed inset-0 bg-black/{isMobile ? '50' : '30'} z-30" aria-label="Close menu"></button>
+	{/if}
+</div>

@@ -1,0 +1,28 @@
+{
+	"/": [],
+	"/affiliate": [],
+	"/api/lives/regen": [
+		"src/routes/api/lives/regen/+server.ts"
+	],
+	"/api/score": [
+		"src/routes/api/score/+server.ts"
+	],
+	"/api/stripe/create-checkout": [
+		"src/routes/api/stripe/create-checkout/+server.ts"
+	],
+	"/api/stripe/webhook": [
+		"src/routes/api/stripe/webhook/+server.ts"
+	],
+	"/auth/callback": [],
+	"/auth/login": [],
+	"/auth/register": [],
+	"/bolengadmin": [],
+	"/chat": [],
+	"/dashboard": [],
+	"/friends": [],
+	"/game/[difficulty]": [],
+	"/leaderboard": [],
+	"/profile/[id]": [],
+	"/settings": [],
+	"/subscribe": []
+}

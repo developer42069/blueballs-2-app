@@ -1,0 +1,60 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+	body {
+		@apply bg-primary dark:bg-dark text-gray-900 dark:text-white transition-colors;
+		overscroll-behavior: none;
+		touch-action: pan-y;
+	}
+}
+
+@layer components {
+	.btn-primary {
+		@apply bg-secondary hover:bg-pink-600 text-white font-bold py-2 px-6 rounded-full transition-all shadow-lg hover:shadow-xl hover:scale-105;
+	}
+
+	.btn-secondary {
+		@apply bg-accent hover:bg-blue-800 text-white font-bold py-2 px-6 rounded-full transition-all shadow-lg hover:shadow-xl hover:scale-105;
+	}
+
+	.card {
+		@apply bg-white dark:bg-dark-secondary rounded-lg shadow-lg p-6;
+	}
+
+	.input {
+		@apply w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-secondary dark:bg-dark dark:text-white;
+	}
+
+	/* Ensure select option tags are readable in dark mode */
+	select option {
+		@apply bg-white dark:bg-dark-secondary text-gray-900 dark:text-white;
+	}
+}
+
+/* Game Canvas Styles */
+canvas {
+	touch-action: none;
+	user-select: none;
+	-webkit-user-select: none;
+	-webkit-tap-highlight-color: transparent;
+}
+
+/* Scrollbar Styles */
+::-webkit-scrollbar {
+	width: 10px;
+	height: 10px;
+}
+
+::-webkit-scrollbar-track {
+	@apply bg-gray-200 dark:bg-dark-secondary;
+}
+
+::-webkit-scrollbar-thumb {
+	@apply bg-secondary rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+	@apply bg-pink-600;
+}
