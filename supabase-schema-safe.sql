@@ -285,6 +285,10 @@ CREATE POLICY "Public profiles are viewable by everyone if public"
     ON profiles FOR SELECT
     USING (profile_public = true OR auth.uid() = id);
 
+CREATE POLICY "Users can insert own profile"
+    ON profiles FOR INSERT
+    WITH CHECK (auth.uid() = id);
+
 CREATE POLICY "Users can update own profile"
     ON profiles FOR UPDATE
     USING (auth.uid() = id);
@@ -457,17 +461,60 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-    INSERT INTO profiles (id, email, username, country_code, region)
+    INSERT INTO profiles (
+        id,
+        email,
+        username,
+        country_code,
+        region,
+        membership_tier,
+        lives,
+        max_lives,
+        lives_per_hour,
+        last_life_regen,
+        lifetime_level,
+        lifetime_points,
+        last_30_days_points,
+        current_rank,
+        high_score_easy,
+        high_score_medium,
+        high_score_hard,
+        profile_public,
+        allow_friend_requests,
+        is_admin
+    )
     VALUES (
         NEW.id,
         NEW.email,
         COALESCE(NEW.raw_user_meta_data->>'username', SPLIT_PART(NEW.email, '@', 1)),
         COALESCE(NEW.raw_user_meta_data->>'country_code', 'US'),
-        COALESCE((NEW.raw_user_meta_data->>'region')::region, 'north_america')
+        COALESCE((NEW.raw_user_meta_data->>'region')::region, 'north_america'),
+        'free',
+        4,
+        100,
+        4,
+        NOW(),
+        1,
+        0,
+        0,
+        'blue',
+        0,
+        0,
+        0,
+        true,
+        true,
+        false
     );
     RETURN NEW;
+EXCEPTION
+    WHEN others THEN
+        RAISE LOG 'Error creating profile for user %: %', NEW.id, SQLERRM;
+        RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Set search path for security
+ALTER FUNCTION handle_new_user() SET search_path = public;
 
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
