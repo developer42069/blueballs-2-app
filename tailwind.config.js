@@ -9,7 +9,8 @@ export default {
 				secondary: '#E40078',
 				accent: '#00008B',
 				dark: '#1a1a1a',
-				'dark-secondary': '#2d2d2d'
+				'dark-secondary': '#2d2d2d',
+				'dark-accent': '#3a3a3a'
 			},
 			fontFamily: {
 				rubik: ['Rubik', 'sans-serif']
