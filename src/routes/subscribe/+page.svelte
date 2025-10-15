@@ -11,6 +11,7 @@
 	let error = '';
 	let success = '';
 	let cancelLoading = false;
+	let changingSubscription = false;
 
 	onMount(async () => {
 		// Wait a bit for auth to load before redirecting
@@ -54,6 +55,59 @@
 		} catch (e: any) {
 			error = e.message || 'Failed to start checkout process';
 			processingCheckout = false;
+		}
+	}
+
+	async function handleChangeSubscription(newTier: 'mid' | 'big') {
+		if (!$user || !$profile) return;
+
+		const currentTier = $profile.membership_tier;
+		const isUpgrade = (currentTier === 'mid' && newTier === 'big');
+		const action = isUpgrade ? 'upgrade' : 'downgrade';
+		const tierName = newTier === 'mid' ? 'Mid' : 'Big';
+
+		if (!confirm(`${isUpgrade ? 'Upgrade' : 'Downgrade'} to ${tierName}?\n\nYou'll be charged/credited proportionally for the time remaining in your billing period. The change takes effect immediately!`)) {
+			return;
+		}
+
+		changingSubscription = true;
+		error = '';
+		success = '';
+
+		try {
+			const response = await fetch('/api/change-subscription', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
+				},
+				body: JSON.stringify({ newTier })
+			});
+
+			if (!response.ok) {
+				const data = await response.json();
+				throw new Error(data.error || 'Failed to change subscription');
+			}
+
+			success = `Successfully ${action}d to ${tierName}! Your new benefits are active immediately.`;
+
+			// Reload profile
+			const { data } = await supabase
+				.from('profiles')
+				.select('*')
+				.eq('id', $user.id)
+				.single();
+
+			if (data) $profile = data;
+
+			// Redirect to success page after a brief moment
+			setTimeout(() => {
+				goto(`/subscribe/success?tier=${newTier}`);
+			}, 1500);
+		} catch (e: any) {
+			error = e.message || 'Failed to change subscription';
+		} finally {
+			changingSubscription = false;
 		}
 	}
 
@@ -269,9 +323,13 @@
 							Current Plan
 						</button>
 					{:else if $profile?.membership_tier === 'big'}
-						<div class="text-center text-sm dark:text-gray-400">
-							Cancel your Big subscription to switch to Mid
-						</div>
+						<button
+							on:click={() => handleChangeSubscription('mid')}
+							class="btn-primary bg-orange-500 hover:bg-orange-600 w-full"
+							disabled={changingSubscription}
+						>
+							{changingSubscription ? 'Switching...' : 'Switch to Mid'}
+						</button>
 					{:else if $profile?.membership_tier === 'free'}
 						<button
 							on:click={() => handleSubscribe('mid')}
@@ -332,11 +390,11 @@
 						</button>
 					{:else if $profile?.membership_tier === 'mid'}
 						<button
-							on:click={() => handleSubscribe('big')}
+							on:click={() => handleChangeSubscription('big')}
 							class="btn-primary bg-white text-primary hover:bg-gray-100 w-full font-bold"
-							disabled={processingCheckout}
+							disabled={changingSubscription}
 						>
-							{processingCheckout ? 'Processing...' : 'Upgrade to Big'}
+							{changingSubscription ? 'Upgrading...' : 'Upgrade to Big'}
 						</button>
 					{:else if $profile?.membership_tier === 'free'}
 						<button
@@ -375,9 +433,13 @@
 					<div>
 						<h3 class="font-bold mb-2">How do I switch between Mid and Big?</h3>
 						<p class="dark:text-gray-300 text-sm">
-							<strong>Upgrading from Mid to Big:</strong> Just click "Upgrade to Big" and you'll be charged immediately for the higher tier.
+							You can switch between Mid and Big instantly! Stripe automatically handles prorated billing:
 							<br><br>
-							<strong>Downgrading from Big to Mid:</strong> Cancel your Big subscription first. After it expires at the end of your billing period, you can subscribe to Mid.
+							<strong>Upgrading from Mid to Big:</strong> Click "Upgrade to Big" and you'll be charged the prorated difference immediately.
+							<br><br>
+							<strong>Downgrading from Big to Mid:</strong> Click "Switch to Mid" and you'll receive a credit for unused time applied to your next invoice.
+							<br><br>
+							Both changes take effect immediately with no waiting period!
 						</p>
 					</div>
 

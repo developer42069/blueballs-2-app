@@ -4,6 +4,9 @@
 	"/api/cancel-subscription": [
 		"src/routes/api/cancel-subscription/+server.ts"
 	],
+	"/api/change-subscription": [
+		"src/routes/api/change-subscription/+server.ts"
+	],
 	"/api/lives/regen": [
 		"src/routes/api/lives/regen/+server.ts"
 	],

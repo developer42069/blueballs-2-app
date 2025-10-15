@@ -79,7 +79,7 @@ export const POST: RequestHandler = async ({ request, url }) => {
 					quantity: 1
 				}
 			],
-			success_url: `${url.origin}/subscribe/success?session_id={CHECKOUT_SESSION_ID}`,
+			success_url: `${url.origin}/subscribe/success?session_id={CHECKOUT_SESSION_ID}&tier=${tier}`,
 			cancel_url: `${url.origin}/subscribe`,
 			metadata: {
 				user_id: user.id,
