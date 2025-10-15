@@ -15,7 +15,6 @@
 
 	// Profile fields
 	let username = '';
-	let country = ''; // Maps to country_code in database
 	let profilePublic = false;
 	let socialPlatform = '';
 	let socialLink = '';
@@ -50,17 +49,6 @@
 		{ value: 'twitch', label: 'Twitch' }
 	];
 
-	const countries = [
-		'United States', 'United Kingdom', 'Canada', 'Australia', 'Germany', 'France',
-		'Spain', 'Italy', 'Netherlands', 'Sweden', 'Norway', 'Denmark', 'Finland',
-		'Poland', 'Belgium', 'Austria', 'Switzerland', 'Ireland', 'Portugal', 'Greece',
-		'Japan', 'South Korea', 'China', 'Taiwan', 'Singapore', 'Hong Kong', 'Thailand',
-		'Philippines', 'Malaysia', 'Indonesia', 'Vietnam', 'India', 'Brazil', 'Mexico',
-		'Argentina', 'Chile', 'Colombia', 'Peru', 'Russia', 'Ukraine', 'Turkey',
-		'South Africa', 'Egypt', 'Nigeria', 'Kenya', 'New Zealand', 'Israel', 'UAE',
-		'Saudi Arabia', 'Other'
-	];
-
 	onMount(async () => {
 		if (!$user) {
 			goto('/auth/login');
@@ -81,7 +69,6 @@
 		if (!$profile) return;
 
 		username = $profile.username || '';
-		country = $profile.country_code || '';
 		profilePublic = $profile.profile_public;
 		socialPlatform = $profile.social_platform || '';
 		socialLink = $profile.social_link || '';
@@ -229,13 +216,6 @@
 			}
 		}
 
-		// Validate country
-		if (!country) {
-			error = 'Please select a country';
-			saving = false;
-			return;
-		}
-
 		if (socialPlatform && !socialLink.trim()) {
 			error = 'Please provide a social media URL or select "None"';
 			saving = false;
@@ -251,7 +231,6 @@
 		try {
 			const updates = {
 				username: username.trim(),
-				country_code: country,
 				profile_public: profilePublic,
 				social_platform: socialPlatform || null,
 				social_link: socialLink.trim() || null,
@@ -417,48 +396,30 @@
 
 			<!-- Profile Tab -->
 			{#if activeTab === 'profile'}
-				<!-- Basic Information -->
+				<!-- Username -->
 				<div class="card mb-6">
 					<h2 class="text-xl font-bold mb-4 flex items-center gap-2">
 						<Settings size={24} />
-						Basic Information
+						Username
 					</h2>
 
-					<div class="space-y-4">
-						<div>
-							<label for="username" class="block font-bold mb-2">
-								Username *
-							</label>
-							<input
-								type="text"
-								id="username"
-								bind:value={username}
-								placeholder="Enter your username"
-								class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary dark:bg-dark-accent dark:text-white"
-								minlength="3"
-								maxlength="20"
-								pattern="[a-zA-Z0-9_]+"
-							/>
-							<p class="text-sm dark:text-gray-300 mt-1">
-								3-20 characters, letters, numbers, and underscores only
-							</p>
-						</div>
-
-						<div>
-							<label for="country" class="block font-bold mb-2">
-								Country *
-							</label>
-							<select
-								id="country"
-								bind:value={country}
-								class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary dark:bg-dark-accent dark:text-white"
-							>
-								<option value="">Select a country</option>
-								{#each countries as countryOption}
-									<option value={countryOption}>{countryOption}</option>
-								{/each}
-							</select>
-						</div>
+					<div>
+						<label for="username" class="block font-bold mb-2">
+							Username *
+						</label>
+						<input
+							type="text"
+							id="username"
+							bind:value={username}
+							placeholder="Enter your username"
+							class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary dark:bg-dark-accent dark:text-white"
+							minlength="3"
+							maxlength="20"
+							pattern="[a-zA-Z0-9_]+"
+						/>
+						<p class="text-sm dark:text-gray-300 mt-1">
+							3-20 characters, letters, numbers, and underscores only
+						</p>
 					</div>
 				</div>
 
