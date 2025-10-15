@@ -4,7 +4,7 @@
 	import { user, profile as currentUserProfile } from '$lib/stores/auth';
 	import { supabase, type Profile, type GameScore } from '$lib/supabase';
 	import { RANK_NAMES, MEMBERSHIP_TIERS } from '$lib/utils/gameConfig';
-	import { Trophy, Calendar, Globe, Star, UserPlus, UserX, ExternalLink } from 'lucide-svelte';
+	import { Trophy, Globe, Star, UserPlus, UserX, ExternalLink } from 'lucide-svelte';
 
 	let profileData: Profile | null = null;
 	let recentScores: GameScore[] = [];
@@ -156,10 +156,6 @@
 							<div class="flex items-center gap-1">
 								<Globe size={16} />
 								<span>{profileData.country_code}</span>
-							</div>
-							<div class="flex items-center gap-1">
-								<Calendar size={16} />
-								<span>Joined {formatDate(profileData.created_at)}</span>
 							</div>
 							<div class="flex items-center gap-1">
 								<Trophy size={16} />
