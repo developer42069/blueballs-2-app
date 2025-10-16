@@ -5,15 +5,28 @@
 	import { Heart, Sparkles } from 'lucide-svelte';
 
 	onMount(async () => {
-		// Sign out the user
-		await supabase.auth.signOut();
+		try {
+			// Sign out the user
+			const { error } = await supabase.auth.signOut();
 
-		// Redirect to homepage after 3 seconds
-		const timer = setTimeout(() => {
-			goto('/');
-		}, 3000);
+			if (error) {
+				console.error('Logout error:', error);
+			}
 
-		return () => clearTimeout(timer);
+			// Redirect to homepage after 3 seconds with full page reload
+			// This ensures all cached state and data is completely cleared
+			const timer = setTimeout(() => {
+				window.location.href = '/';
+			}, 3000);
+
+			return () => clearTimeout(timer);
+		} catch (e) {
+			console.error('Logout failed:', e);
+			// Force redirect anyway
+			setTimeout(() => {
+				window.location.href = '/';
+			}, 3000);
+		}
 	});
 </script>
 
