@@ -25,7 +25,8 @@ export const nodes = [
 	() => import('./nodes/21'),
 	() => import('./nodes/22'),
 	() => import('./nodes/23'),
-	() => import('./nodes/24')
+	() => import('./nodes/24'),
+	() => import('./nodes/25')
 ];
 
 export const server_loads = [];
@@ -42,18 +43,19 @@ export const dictionary = {
 		"/auth/reset-password": [10],
 		"/auth/welcome": [11],
 		"/bolengadmin": [12],
-		"/chat": [13],
-		"/chat/friends": [14],
-		"/dashboard": [15],
-		"/friends": [16],
-		"/game/[difficulty]": [17],
-		"/leaderboard": [18],
-		"/privacy": [19],
-		"/profile/[id]": [20],
-		"/settings": [21],
-		"/subscribe": [22],
-		"/subscribe/success": [23],
-		"/terms": [24]
+		"/bolengadmin/game": [13],
+		"/chat": [14],
+		"/chat/friends": [15],
+		"/dashboard": [16],
+		"/friends": [17],
+		"/game/[difficulty]": [18],
+		"/leaderboard": [19],
+		"/privacy": [20],
+		"/profile/[id]": [21],
+		"/settings": [22],
+		"/subscribe": [23],
+		"/subscribe/success": [24],
+		"/terms": [25]
 	};
 
 export const hooks = {

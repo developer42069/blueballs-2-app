@@ -5,14 +5,19 @@
 	import { Heart, Sparkles } from 'lucide-svelte';
 
 	onMount(() => {
-		// Sign out the user
+		// Sign out the user with proper scope
 		(async () => {
 			try {
-				const { error } = await supabase.auth.signOut();
+				// Sign out from all scopes (local, global, and others)
+				const { error } = await supabase.auth.signOut({ scope: 'global' });
 
 				if (error) {
 					console.error('Logout error:', error);
 				}
+
+				// Clear any cached session data
+				localStorage.clear();
+				sessionStorage.clear();
 			} catch (e) {
 				console.error('Logout failed:', e);
 			}

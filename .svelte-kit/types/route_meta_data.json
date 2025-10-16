@@ -34,6 +34,7 @@
 	"/auth/reset-password": [],
 	"/auth/welcome": [],
 	"/bolengadmin": [],
+	"/bolengadmin/game": [],
 	"/chat": [],
 	"/chat/friends": [],
 	"/dashboard": [],

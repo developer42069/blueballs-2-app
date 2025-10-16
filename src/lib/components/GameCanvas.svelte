@@ -127,7 +127,9 @@
 			}
 		};
 
-		canvas.addEventListener('click', handleInput);
+		// Note: Canvas click handlers are added via on:click in the template
+		// This ensures they work in both normal and fullscreen modes
+
 		const keydownHandler = (e: KeyboardEvent) => {
 			// Don't interfere with typing in inputs/textareas
 			const target = e.target as HTMLElement;
@@ -727,6 +729,7 @@
 
 		<canvas
 			bind:this={canvas}
+			on:click={handleInput}
 			class="w-full border-4 border-primary dark:border-secondary rounded-lg shadow-2xl cursor-pointer"
 			style="max-height: 500px;"
 		></canvas>
@@ -769,6 +772,8 @@
 			<!-- Game Canvas -->
 			<canvas
 				bind:this={canvas}
+				on:click={handleInput}
+				on:touchstart|preventDefault={handleInput}
 				class="fullscreen-canvas"
 			></canvas>
 
