@@ -5,6 +5,7 @@
 	import { goto } from '$app/navigation';
 	import type { ChatMessage } from '$lib/supabase';
 	import { Send, AlertCircle } from 'lucide-svelte';
+	import { analytics } from '$lib/analytics';
 
 	let messages: (ChatMessage & { profiles: any })[] = [];
 	let newMessage = '';
@@ -178,6 +179,9 @@
 			canSendMessage = false;
 			cooldownSeconds = getCooldownForTier($profile?.membership_tier || 'free');
 			startCooldownTimer();
+
+			// Track message sent
+			analytics.sendMessage('global');
 		} catch (err: any) {
 			error = err.message || 'Failed to send message';
 			newMessage = messageText; // Restore message on error

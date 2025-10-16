@@ -5,6 +5,7 @@
 	import { supabase } from '$lib/supabase';
 	import { theme } from '$lib/stores/theme';
 	import { Settings, Globe, Link2, MessageSquare, Users, Image, CheckCircle, X, Upload, Eye, Bell, Volume2, Gamepad2, Shield, Trash2, Key, LogOut } from 'lucide-svelte';
+	import { analytics } from '$lib/analytics';
 
 	let loading = true;
 	let saving = false;
@@ -145,6 +146,10 @@
 		localStorage.setItem('defaultDifficulty', defaultDifficulty);
 		localStorage.setItem('chatNotifications', chatNotifications.toString());
 		localStorage.setItem('friendRequestNotifications', friendRequestNotifications.toString());
+
+		// Track preferences update
+		analytics.updateSettings('preferences');
+
 		success = 'Preferences saved successfully!';
 		setTimeout(() => success = '', 3000);
 	}
@@ -314,6 +319,13 @@
 
 			if ($profile) {
 				$profile = { ...$profile, ...updates };
+			}
+
+			// Track settings update based on active tab
+			if (activeTab === 'profile') {
+				analytics.updateSettings('profile');
+			} else if (activeTab === 'privacy') {
+				analytics.updateSettings('privacy');
 			}
 
 			success = 'Profile settings saved successfully!';

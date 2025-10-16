@@ -5,6 +5,7 @@
 	import { goto } from '$app/navigation';
 	import type { Friend, Profile } from '$lib/supabase';
 	import { Users, MessageCircle, Send, UserPlus } from 'lucide-svelte';
+	import { analytics } from '$lib/analytics';
 
 	let friends: (Friend & { friend: Profile })[] = [];
 	let selectedFriend: (Friend & { friend: Profile }) | null = null;
@@ -132,6 +133,9 @@
 				messages = [...messages, insertedMessage];
 				setTimeout(scrollToBottom, 100);
 			}
+
+			// Track direct message sent
+			analytics.sendMessage('direct');
 		} catch (err: any) {
 			console.error('Failed to send message:', err);
 			newMessage = messageText; // Restore message on error

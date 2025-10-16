@@ -5,6 +5,7 @@
 	import { supabase, type Profile, type GameScore } from '$lib/supabase';
 	import { RANK_NAMES, MEMBERSHIP_TIERS } from '$lib/utils/gameConfig';
 	import { Trophy, Globe, Star, UserPlus, UserX, ExternalLink } from 'lucide-svelte';
+	import { analytics } from '$lib/analytics';
 
 	let profileData: Profile | null = null;
 	let recentScores: GameScore[] = [];
@@ -17,6 +18,10 @@
 
 	onMount(async () => {
 		await loadProfile();
+
+		// Track profile view
+		analytics.viewProfile(isOwnProfile);
+
 		loading = false;
 	});
 
@@ -81,6 +86,9 @@
 					user_id: $user.id,
 					friend_id: profileData.id
 				});
+
+			// Track friend request sent
+			analytics.sendFriendRequest();
 
 			isFriend = true;
 		}

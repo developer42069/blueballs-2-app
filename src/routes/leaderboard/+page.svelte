@@ -3,6 +3,7 @@
 	import { supabase, type Profile } from '$lib/supabase';
 	import { user } from '$lib/stores/auth';
 	import { Trophy, Medal, Award, Globe } from 'lucide-svelte';
+	import { analytics } from '$lib/analytics';
 
 	type LeaderboardEntry = Profile & { rank: number };
 
@@ -38,6 +39,10 @@
 		loading = true;
 
 		try {
+			// Track leaderboard view with type
+			const viewType = selectedRegion === 'global' ? 'global' : 'regional';
+			analytics.viewLeaderboard(viewType as 'global' | 'regional' | 'friends');
+
 			let query = supabase
 				.from('profiles')
 				.select('*');
