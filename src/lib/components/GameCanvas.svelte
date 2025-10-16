@@ -144,9 +144,22 @@
 		const container = canvas.parentElement;
 		if (container) {
 			if (isFullscreen) {
-				// In fullscreen mode, use full viewport dimensions
-				canvas.width = window.innerWidth;
-				canvas.height = window.innerHeight;
+				// In fullscreen mode, maintain 16:9 aspect ratio (or fit to viewport)
+				const viewportWidth = window.innerWidth;
+				const viewportHeight = window.innerHeight;
+				const targetAspectRatio = 5 / 3; // Same as normal mode (500/300 = 1.67)
+
+				// Calculate dimensions to fit viewport while maintaining aspect ratio
+				let width = viewportWidth;
+				let height = width / targetAspectRatio;
+
+				if (height > viewportHeight) {
+					height = viewportHeight;
+					width = height * targetAspectRatio;
+				}
+
+				canvas.width = width;
+				canvas.height = height;
 			} else {
 				canvas.width = container.clientWidth;
 				canvas.height = Math.min(500, container.clientWidth * 0.6);
@@ -246,8 +259,12 @@
 		countdown = 3;
 		gameOver = false;
 		score = 0;
+
+		// Reset bird to center of current canvas size
+		bird.x = 50;
 		bird.y = canvas.height / 2;
 		bird.velocity = 0;
+
 		pipes = [];
 		lastPipeX = canvas.width;
 
@@ -808,10 +825,11 @@
 
 	/* Fullscreen canvas */
 	.fullscreen-canvas {
-		width: 100vw;
-		height: 100vh;
+		max-width: 100vw;
+		max-height: 100vh;
 		cursor: pointer;
 		touch-action: none;
+		display: block;
 	}
 
 	/* TAP Button - Vibrant and Eye-catching */
