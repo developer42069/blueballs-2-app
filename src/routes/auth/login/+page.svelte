@@ -4,6 +4,7 @@
 	import { goto } from '$app/navigation';
 	import { user } from '$lib/stores/auth';
 	import { Mail, Lock } from 'lucide-svelte';
+	import { analytics } from '$lib/analytics';
 
 	let email = '';
 	let password = '';
@@ -56,6 +57,9 @@
 
 			if (signInError) throw signInError;
 
+			// Track successful login
+			analytics.login('email');
+
 			// Show welcome screen then redirect to homepage
 			goto('/auth/welcome');
 		} catch (e: any) {
@@ -82,6 +86,9 @@
 			});
 
 			if (signInError) throw signInError;
+
+			// Track OAuth login initiation
+			analytics.login(provider);
 		} catch (e: any) {
 			error = e.message || 'Failed to login with OAuth';
 			loading = false;

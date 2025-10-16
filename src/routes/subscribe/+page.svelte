@@ -5,6 +5,7 @@
 	import { supabase } from '$lib/supabase';
 	import { MEMBERSHIP_TIERS } from '$lib/utils/gameConfig';
 	import { Heart, Zap, Star, CheckCircle, X, Crown, Image, MessageCircle, XCircle } from 'lucide-svelte';
+	import { analytics } from '$lib/analytics';
 
 	let loading = true;
 	let processingCheckout = false;
@@ -21,6 +22,10 @@
 			goto('/auth/login');
 			return;
 		}
+
+		// Track subscription page view
+		analytics.viewSubscription();
+
 		loading = false;
 	});
 
@@ -31,6 +36,10 @@
 		error = '';
 
 		try {
+			// Track checkout initiation
+			const value = tier === 'mid' ? 2 : 10;
+			analytics.initiateCheckout(tier, value);
+
 			// Call your backend API to create Stripe checkout session
 			const response = await fetch('/api/stripe/create-checkout', {
 				method: 'POST',
@@ -75,6 +84,9 @@
 		success = '';
 
 		try {
+			// Track subscription change
+			analytics.subscriptionChange(currentTier, newTier);
+
 			const response = await fetch('/api/change-subscription', {
 				method: 'POST',
 				headers: {
@@ -125,6 +137,9 @@
 		success = '';
 
 		try {
+			// Track subscription cancellation
+			analytics.subscriptionCancel($profile.membership_tier);
+
 			const response = await fetch('/api/cancel-subscription', {
 				method: 'POST',
 				headers: {

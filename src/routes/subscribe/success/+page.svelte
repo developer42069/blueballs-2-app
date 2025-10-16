@@ -3,6 +3,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { CheckCircle, Sparkles, Crown, Zap, Share2, Play } from 'lucide-svelte';
+	import { analytics } from '$lib/analytics';
 
 	let tier = 'mid'; // default
 	let autoRedirect = true;
@@ -11,6 +12,11 @@
 	onMount(() => {
 		// Get tier from URL query parameter
 		tier = $page.url.searchParams.get('tier') || 'mid';
+
+		// Track successful purchase
+		const value = tier === 'mid' ? 2 : 10;
+		const sessionId = $page.url.searchParams.get('session_id');
+		analytics.purchase(tier as 'mid' | 'big', value, sessionId || undefined);
 
 		// Countdown timer
 		const interval = setInterval(() => {

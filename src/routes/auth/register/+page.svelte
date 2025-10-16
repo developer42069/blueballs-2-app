@@ -4,6 +4,7 @@
 	import { goto } from '$app/navigation';
 	import { user } from '$lib/stores/auth';
 	import { Mail, Lock, User as UserIcon, Globe } from 'lucide-svelte';
+	import { analytics } from '$lib/analytics';
 
 	let email = '';
 	let password = '';
@@ -103,12 +104,15 @@
 
 			if (signUpError) throw signUpError;
 
+			// Track successful sign up
+			analytics.signUp('email');
+
 			// Profile is automatically created by the handle_new_user() trigger
 			// Redirect to dashboard
 			goto('/dashboard');
 		} catch (e: any) {
 			error = e.message || 'Failed to register';
-		} finally {
+		} finally{
 			loading = false;
 		}
 	}
@@ -130,6 +134,9 @@
 			});
 
 			if (signInError) throw signInError;
+
+			// Track OAuth sign up initiation
+			analytics.signUp(provider);
 		} catch (e: any) {
 			error = e.message || 'Failed to register with OAuth';
 			loading = false;
