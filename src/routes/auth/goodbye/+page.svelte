@@ -4,29 +4,27 @@
 	import { supabase } from '$lib/supabase';
 	import { Heart, Sparkles } from 'lucide-svelte';
 
-	onMount(async () => {
-		try {
-			// Sign out the user
-			const { error } = await supabase.auth.signOut();
+	onMount(() => {
+		// Sign out the user
+		(async () => {
+			try {
+				const { error } = await supabase.auth.signOut();
 
-			if (error) {
-				console.error('Logout error:', error);
+				if (error) {
+					console.error('Logout error:', error);
+				}
+			} catch (e) {
+				console.error('Logout failed:', e);
 			}
+		})();
 
-			// Redirect to homepage after 3 seconds with full page reload
-			// This ensures all cached state and data is completely cleared
-			const timer = setTimeout(() => {
-				window.location.href = '/';
-			}, 3000);
+		// Redirect to homepage after 3 seconds with full page reload
+		// This ensures all cached state and data is completely cleared
+		const timer = setTimeout(() => {
+			window.location.href = '/';
+		}, 3000);
 
-			return () => clearTimeout(timer);
-		} catch (e) {
-			console.error('Logout failed:', e);
-			// Force redirect anyway
-			setTimeout(() => {
-				window.location.href = '/';
-			}, 3000);
-		}
+		return () => clearTimeout(timer);
 	});
 </script>
 

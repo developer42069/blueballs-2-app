@@ -134,11 +134,11 @@
 	}
 
 	function calculateRankProgress() {
-		if (!$profile) return { progress: 0, currentRank: 'blue', nextRank: 'silver', currentPoints: 0, nextThreshold: 1000 };
+		if (!$profile) return { progress: 0, currentRank: 'blue' as const, nextRank: 'silver' as const, currentPoints: 0, nextThreshold: 1000 };
 
 		const currentRankIndex = RANK_ORDER.indexOf($profile.current_rank as any);
-		const currentRank = RANK_ORDER[currentRankIndex];
-		const nextRank = currentRankIndex < RANK_ORDER.length - 1 ? RANK_ORDER[currentRankIndex + 1] : currentRank;
+		const currentRank = RANK_ORDER[currentRankIndex] as keyof typeof RANK_NAMES;
+		const nextRank = (currentRankIndex < RANK_ORDER.length - 1 ? RANK_ORDER[currentRankIndex + 1] : currentRank) as keyof typeof RANK_NAMES;
 
 		const currentThreshold = RANK_NAMES[currentRank].threshold;
 		const nextThreshold = RANK_NAMES[nextRank].threshold;

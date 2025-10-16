@@ -30,7 +30,7 @@
   let notificationMenuOpen = false;
   let isMobile = false;
 
-  onMount(async () => {
+  onMount(() => {
     // Check viewport size
     isMobile = window.innerWidth <= 768;
 
@@ -56,16 +56,18 @@
     });
 
     // Get initial session
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    if (session) {
-      $user = session.user;
-      await loadProfile(session.user.id);
-      await loadNotifications();
-      subscribeToNotifications();
-    }
-    $loading = false;
+    (async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (session) {
+        $user = session.user;
+        await loadProfile(session.user.id);
+        await loadNotifications();
+        subscribeToNotifications();
+      }
+      $loading = false;
+    })();
 
     // Listen for auth changes
     const {

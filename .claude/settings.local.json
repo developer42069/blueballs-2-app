@@ -10,7 +10,9 @@
       "Bash(cat:*)",
       "WebFetch(domain:supabase.com)",
       "Bash(npm run dev)",
-      "WebFetch(domain:docs.stripe.com)"
+      "WebFetch(domain:docs.stripe.com)",
+      "Bash(npx svelte-check:*)",
+      "Bash(find:*)"
     ],
     "deny": [],
     "ask": []
