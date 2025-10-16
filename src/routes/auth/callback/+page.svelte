@@ -3,16 +3,26 @@
 	import { supabase } from '$lib/supabase';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
+	import { analytics } from '$lib/analytics';
 
 	let status = 'Processing authentication...';
 	let error = '';
 
 	onMount(async () => {
 		try {
+			// Detect OAuth provider from user metadata
+			let oauthProvider: 'google' | 'discord' | null = null;
+
 			// First check if user is already authenticated
 			const { data: { user: existingUser } } = await supabase.auth.getUser();
 
 			if (existingUser) {
+				// Detect provider
+				const provider = existingUser.app_metadata?.provider;
+				if (provider === 'google' || provider === 'discord') {
+					oauthProvider = provider;
+				}
+
 				// User is already authenticated, just check profile and redirect
 				const { data: existingProfile } = await supabase
 					.from('profiles')
@@ -21,7 +31,10 @@
 					.single();
 
 				if (!existingProfile) {
-					// No profile, go to onboarding
+					// No profile, go to onboarding (new user signup)
+					if (oauthProvider) {
+						analytics.signUp(oauthProvider);
+					}
 					sessionStorage.setItem('onboarding_user', JSON.stringify({
 						id: existingUser.id,
 						email: existingUser.email,
@@ -35,7 +48,10 @@
 					return;
 				}
 
-				// Profile exists - show welcome screen
+				// Profile exists - returning user login
+				if (oauthProvider) {
+					analytics.login(oauthProvider);
+				}
 				goto('/auth/welcome');
 				return;
 			}
@@ -54,6 +70,12 @@
 			if (exchangeError) throw exchangeError;
 
 			if (data.user) {
+				// Detect provider
+				const provider = data.user.app_metadata?.provider;
+				if (provider === 'google' || provider === 'discord') {
+					oauthProvider = provider;
+				}
+
 				// Check if profile exists
 				const { data: existingProfile } = await supabase
 					.from('profiles')
@@ -61,8 +83,11 @@
 					.eq('id', data.user.id)
 					.single();
 
-				// If no profile exists, redirect to onboarding
+				// If no profile exists, redirect to onboarding (new user signup)
 				if (!existingProfile) {
+					if (oauthProvider) {
+						analytics.signUp(oauthProvider);
+					}
 					// Store user data temporarily for onboarding
 					sessionStorage.setItem('onboarding_user', JSON.stringify({
 						id: data.user.id,
@@ -77,7 +102,10 @@
 					return;
 				}
 
-				// Profile exists - show welcome screen then redirect to homepage
+				// Profile exists - returning user login
+				if (oauthProvider) {
+					analytics.login(oauthProvider);
+				}
 				goto('/auth/welcome');
 			}
 		} catch (e: any) {

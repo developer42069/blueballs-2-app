@@ -57,7 +57,7 @@
 	onMount(async () => {
 		// Redirect if already logged in
 		if ($user) {
-			goto('/dashboard');
+			goto('/');
 			return;
 		}
 
@@ -104,12 +104,36 @@
 
 			if (signUpError) throw signUpError;
 
+			if (!authData.user) {
+				throw new Error('Registration failed');
+			}
+
+			// Wait a moment for database trigger to create profile
+			await new Promise(resolve => setTimeout(resolve, 1500));
+
+			// Check if profile was created by trigger
+			const { data: profile } = await supabase
+				.from('profiles')
+				.select('id')
+				.eq('id', authData.user.id)
+				.single();
+
+			if (!profile) {
+				// Trigger didn't create profile, redirect to onboarding
+				sessionStorage.setItem('onboarding_user', JSON.stringify({
+					id: authData.user.id,
+					email: authData.user.email,
+					suggested_username: username
+				}));
+				goto('/auth/onboarding');
+				return;
+			}
+
 			// Track successful sign up
 			analytics.signUp('email');
 
-			// Profile is automatically created by the handle_new_user() trigger
-			// Redirect to dashboard
-			goto('/dashboard');
+			// Profile exists, redirect to welcome then game
+			goto('/auth/welcome');
 		} catch (e: any) {
 			error = e.message || 'Failed to register';
 		} finally{
@@ -135,8 +159,7 @@
 
 			if (signInError) throw signInError;
 
-			// Track OAuth sign up initiation
-			analytics.signUp(provider);
+			// Analytics will be tracked in callback after successful authentication
 		} catch (e: any) {
 			error = e.message || 'Failed to register with OAuth';
 			loading = false;

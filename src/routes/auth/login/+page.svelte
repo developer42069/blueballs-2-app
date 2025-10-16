@@ -16,7 +16,7 @@
 	onMount(async () => {
 		// Redirect if already logged in
 		if ($user) {
-			goto('/dashboard');
+			goto('/');
 			return;
 		}
 
@@ -87,8 +87,7 @@
 
 			if (signInError) throw signInError;
 
-			// Track OAuth login initiation
-			analytics.login(provider);
+			// Analytics will be tracked in callback after successful authentication
 		} catch (e: any) {
 			error = e.message || 'Failed to login with OAuth';
 			loading = false;
