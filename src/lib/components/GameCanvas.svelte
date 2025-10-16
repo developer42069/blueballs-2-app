@@ -161,7 +161,12 @@
 		document.body.style.overflow = 'hidden';
 
 		// Wait for DOM to update
-		await new Promise(resolve => setTimeout(resolve, 50));
+		await new Promise(resolve => setTimeout(resolve, 100));
+
+		// Get canvas context again for fullscreen canvas
+		if (canvas) {
+			ctx = canvas.getContext('2d')!;
+		}
 
 		// Try to enter browser fullscreen API
 		if (fullscreenContainer?.requestFullscreen) {
@@ -179,6 +184,8 @@
 
 		// Resize and redraw after entering fullscreen
 		setTimeout(() => {
+			if (!ctx || !canvas) return;
+
 			resizeCanvas();
 
 			// Redraw current screen
@@ -193,7 +200,7 @@
 			} else {
 				drawStartScreen();
 			}
-		}, 100);
+		}, 150);
 	}
 
 	function exitFullscreen() {
@@ -213,6 +220,11 @@
 		}
 
 		setTimeout(() => {
+			// Reinitialize canvas context for normal canvas
+			if (canvas) {
+				ctx = canvas.getContext('2d')!;
+			}
+
 			resizeCanvas();
 
 			// Redraw current screen
@@ -418,8 +430,8 @@
 	}
 
 	function draw() {
-		// Fill with cyan background (matching original game)
-		ctx.fillStyle = '#4ec0ca';
+		// Fill with dark background
+		ctx.fillStyle = '#1a1a2e';
 		ctx.fillRect(0, 0, canvas.width, canvas.height);
 
 		// Draw spikes (triangles) with enhanced shadows
@@ -503,8 +515,8 @@
 	function drawCountdown() {
 		if (!ctx) return;
 
-		// Fill with cyan background
-		ctx.fillStyle = '#4ec0ca';
+		// Fill with dark background
+		ctx.fillStyle = '#1a1a2e';
 		ctx.fillRect(0, 0, canvas.width, canvas.height);
 
 		// Draw bird in center
@@ -529,8 +541,8 @@
 	function drawWaitingScreen() {
 		if (!ctx) return;
 
-		// Fill with cyan background
-		ctx.fillStyle = '#4ec0ca';
+		// Fill with dark background
+		ctx.fillStyle = '#1a1a2e';
 		ctx.fillRect(0, 0, canvas.width, canvas.height);
 
 		// Draw bird hovering in center
@@ -556,8 +568,8 @@
 	function drawStartScreen() {
 		if (!ctx) return;
 
-		// Fill with cyan background (matching original game)
-		ctx.fillStyle = '#4ec0ca';
+		// Fill with dark background
+		ctx.fillStyle = '#1a1a2e';
 		ctx.fillRect(0, 0, canvas.width, canvas.height);
 
 		// Draw bird
@@ -762,7 +774,7 @@
 		height: 100vh;
 		max-width: 100vw;
 		max-height: 100vh;
-		background: #4ec0ca;
+		background: #1a1a2e;
 		z-index: 9999;
 		display: flex;
 		align-items: center;
