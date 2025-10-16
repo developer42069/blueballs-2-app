@@ -15,6 +15,7 @@
 
 	// Profile fields
 	let username = '';
+	let country = '';
 	let profilePublic = false;
 	let socialPlatform = '';
 	let socialLink = '';
@@ -49,6 +50,56 @@
 		{ value: 'twitch', label: 'Twitch' }
 	];
 
+	const countries = [
+		'United States', 'United Kingdom', 'Canada', 'Australia', 'Germany', 'France',
+		'Spain', 'Italy', 'Netherlands', 'Sweden', 'Norway', 'Denmark', 'Finland',
+		'Poland', 'Belgium', 'Austria', 'Switzerland', 'Ireland', 'Portugal', 'Greece',
+		'Japan', 'South Korea', 'China', 'Taiwan', 'Singapore', 'Hong Kong', 'Thailand',
+		'Philippines', 'Malaysia', 'Indonesia', 'Vietnam', 'India', 'Brazil', 'Mexico',
+		'Argentina', 'Chile', 'Colombia', 'Peru', 'Russia', 'Ukraine', 'Turkey',
+		'South Africa', 'Egypt', 'Nigeria', 'Kenya', 'New Zealand', 'Israel', 'UAE',
+		'Saudi Arabia', 'Other'
+	];
+
+	// Map country names to 2-letter codes
+	const countryToCodes: Record<string, string> = {
+		'United States': 'US', 'United Kingdom': 'GB', 'Canada': 'CA', 'Australia': 'AU',
+		'Germany': 'DE', 'France': 'FR', 'Spain': 'ES', 'Italy': 'IT', 'Netherlands': 'NL',
+		'Sweden': 'SE', 'Norway': 'NO', 'Denmark': 'DK', 'Finland': 'FI', 'Poland': 'PL',
+		'Belgium': 'BE', 'Austria': 'AT', 'Switzerland': 'CH', 'Ireland': 'IE', 'Portugal': 'PT',
+		'Greece': 'GR', 'Japan': 'JP', 'South Korea': 'KR', 'China': 'CN', 'Taiwan': 'TW',
+		'Singapore': 'SG', 'Hong Kong': 'HK', 'Thailand': 'TH', 'Philippines': 'PH',
+		'Malaysia': 'MY', 'Indonesia': 'ID', 'Vietnam': 'VN', 'India': 'IN', 'Brazil': 'BR',
+		'Mexico': 'MX', 'Argentina': 'AR', 'Chile': 'CL', 'Colombia': 'CO', 'Peru': 'PE',
+		'Russia': 'RU', 'Ukraine': 'UA', 'Turkey': 'TR', 'South Africa': 'ZA', 'Egypt': 'EG',
+		'Nigeria': 'NG', 'Kenya': 'KE', 'New Zealand': 'NZ', 'Israel': 'IL', 'UAE': 'AE',
+		'Saudi Arabia': 'SA', 'Other': 'XX'
+	};
+
+	// Map country codes back to names for display
+	const codesToCountry: Record<string, string> = {};
+	Object.keys(countryToCodes).forEach(name => {
+		codesToCountry[countryToCodes[name]] = name;
+	});
+
+	// Map country codes to regions
+	function getRegion(countryCode: string): string {
+		const asiaCountries = ['CN', 'JP', 'KR', 'IN', 'TH', 'VN', 'SG', 'MY', 'ID', 'PH', 'TW', 'HK'];
+		const europeCountries = ['GB', 'DE', 'FR', 'IT', 'ES', 'NL', 'SE', 'NO', 'DK', 'FI', 'PL', 'RU', 'BE', 'AT', 'CH', 'IE', 'PT', 'GR', 'UA'];
+		const northAmericaCountries = ['US', 'CA', 'MX'];
+		const southAmericaCountries = ['BR', 'AR', 'CL', 'CO', 'PE'];
+		const africaCountries = ['ZA', 'NG', 'EG', 'KE'];
+		const oceaniaCountries = ['AU', 'NZ'];
+
+		if (asiaCountries.includes(countryCode)) return 'asia';
+		if (europeCountries.includes(countryCode)) return 'europe';
+		if (northAmericaCountries.includes(countryCode)) return 'north_america';
+		if (southAmericaCountries.includes(countryCode)) return 'south_america';
+		if (africaCountries.includes(countryCode)) return 'africa';
+		if (oceaniaCountries.includes(countryCode)) return 'oceania';
+		return 'north_america'; // default
+	}
+
 	onMount(async () => {
 		if (!$user) {
 			goto('/auth/login');
@@ -69,6 +120,8 @@
 		if (!$profile) return;
 
 		username = $profile.username || '';
+		// Map country_code back to country name for display
+		country = $profile.country_code ? (codesToCountry[$profile.country_code] || '') : '';
 		profilePublic = $profile.profile_public;
 		socialPlatform = $profile.social_platform || '';
 		socialLink = $profile.social_link || '';
@@ -228,9 +281,22 @@
 			return;
 		}
 
+		// Validate country if changed
+		if (country && !countryToCodes[country]) {
+			error = 'Please select a valid country';
+			saving = false;
+			return;
+		}
+
 		try {
+			// Calculate country_code and region from country selection
+			const countryCode = country ? countryToCodes[country] : ($profile?.country_code || 'US');
+			const region = getRegion(countryCode);
+
 			const updates = {
 				username: username.trim(),
+				country_code: countryCode,
+				region: region as any,
 				profile_public: profilePublic,
 				social_platform: socialPlatform || null,
 				social_link: socialLink.trim() || null,
@@ -419,6 +485,33 @@
 						/>
 						<p class="text-sm dark:text-gray-300 mt-1">
 							3-20 characters, letters, numbers, and underscores only
+						</p>
+					</div>
+				</div>
+
+				<!-- Country -->
+				<div class="card mb-6">
+					<h2 class="text-xl font-bold mb-4 flex items-center gap-2">
+						<Globe size={24} />
+						Country
+					</h2>
+
+					<div>
+						<label for="country" class="block font-bold mb-2">
+							Country
+						</label>
+						<select
+							id="country"
+							bind:value={country}
+							class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary dark:bg-dark-accent dark:text-white"
+						>
+							<option value="">Select a country</option>
+							{#each countries as countryOption}
+								<option value={countryOption}>{countryOption}</option>
+							{/each}
+						</select>
+						<p class="text-sm dark:text-gray-300 mt-1">
+							This helps us show you on the regional leaderboards
 						</p>
 					</div>
 				</div>
