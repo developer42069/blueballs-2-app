@@ -24,7 +24,7 @@
 	} from 'lucide-svelte';
 
 	let loading = true;
-	let activeTab: 'dashboard' | 'users' | 'affiliates' | 'settings' | 'email' | 'ads' = 'dashboard';
+	let activeTab: 'dashboard' | 'users' | 'affiliates' | 'settings' | 'email' | 'ads' | 'game' = 'dashboard';
 	let error = '';
 	let success = '';
 	let actionLoading = false;
@@ -508,6 +508,12 @@
 				>
 					<Code size={18} class="inline" /> Ads
 				</button>
+				<a
+					href="/bolengadmin/game"
+					class="px-4 py-2 rounded-lg font-bold whitespace-nowrap bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:from-purple-600 hover:to-pink-600"
+				>
+					<Settings size={18} class="inline" /> Game Mechanics
+				</a>
 			</div>
 
 			<!-- Dashboard Tab -->
