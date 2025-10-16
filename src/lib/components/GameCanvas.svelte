@@ -23,10 +23,14 @@
 	let isMobile = false; // Detect if mobile device
 	let fullscreenContainer: HTMLDivElement;
 
-	// Game objects
+	// Fixed internal resolution for consistent gameplay across all devices
+	const GAME_WIDTH = 800;
+	const GAME_HEIGHT = 480;
+
+	// Game objects - positioned relative to fixed canvas size
 	let bird = {
-		x: 50,
-		y: 250,
+		x: 80,
+		y: GAME_HEIGHT / 2, // Center vertically
 		radius: 15,
 		velocity: 0,
 		color: '#2563eb' // Bright blue for visibility
@@ -41,7 +45,7 @@
 		bottomSpikeWidth: number;
 	}> = [];
 
-	let lastPipeX = 400;
+	let lastPipeX = GAME_WIDTH;
 	const spikeWidth = 80; // Width of spike at base
 	const pipeColor = '#E40078'; // Pink
 
@@ -93,16 +97,23 @@
 		// Detect mobile device
 		isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 768;
 
-		ctx = canvas.getContext('2d')!;
+		ctx = canvas.getContext('2d', {
+			alpha: false,
+			desynchronized: true
+		})!;
 		resizeCanvas();
 		window.addEventListener('resize', resizeCanvas);
 
 		// Input handlers
-		const handleInput = () => {
+		const handleInput = async () => {
 			if (countdown > 0) {
 				// Ignore input during countdown
 				return;
 			} else if (!gameStarted && !waitingForFirstJump && countdown === 0) {
+				// On mobile, enter fullscreen automatically when starting game
+				if (isMobile && !isFullscreen) {
+					await enterFullscreen();
+				}
 				// Start countdown
 				startCountdown();
 			} else if (waitingForFirstJump) {
@@ -142,28 +153,40 @@
 
 	function resizeCanvas() {
 		const container = canvas.parentElement;
-		if (container) {
-			if (isFullscreen) {
-				// In fullscreen mode, maintain 16:9 aspect ratio (or fit to viewport)
-				const viewportWidth = window.innerWidth;
-				const viewportHeight = window.innerHeight;
-				const targetAspectRatio = 5 / 3; // Same as normal mode (500/300 = 1.67)
+		if (!container) return;
 
-				// Calculate dimensions to fit viewport while maintaining aspect ratio
-				let width = viewportWidth;
-				let height = width / targetAspectRatio;
+		// ALWAYS use the same internal resolution for consistent gameplay
+		canvas.width = GAME_WIDTH;
+		canvas.height = GAME_HEIGHT;
 
-				if (height > viewportHeight) {
-					height = viewportHeight;
-					width = height * targetAspectRatio;
-				}
+		// The CSS will scale it to fit the viewport
+		// This ensures game physics, speed, and mechanics are identical everywhere
+		if (isFullscreen) {
+			// Fullscreen: fit to viewport while maintaining aspect ratio
+			const viewportWidth = window.innerWidth;
+			const viewportHeight = window.innerHeight;
+			const targetAspectRatio = GAME_WIDTH / GAME_HEIGHT;
 
-				canvas.width = width;
-				canvas.height = height;
-			} else {
-				canvas.width = container.clientWidth;
-				canvas.height = Math.min(500, container.clientWidth * 0.6);
+			let displayWidth = viewportWidth;
+			let displayHeight = displayWidth / targetAspectRatio;
+
+			if (displayHeight > viewportHeight) {
+				displayHeight = viewportHeight;
+				displayWidth = displayHeight * targetAspectRatio;
 			}
+
+			// Set CSS dimensions (this scales the canvas visually)
+			canvas.style.width = `${displayWidth}px`;
+			canvas.style.height = `${displayHeight}px`;
+		} else {
+			// Normal mode: fit to container
+			const containerWidth = container.clientWidth;
+			const targetAspectRatio = GAME_WIDTH / GAME_HEIGHT;
+			const displayHeight = Math.min(480, containerWidth / targetAspectRatio);
+			const displayWidth = displayHeight * targetAspectRatio;
+
+			canvas.style.width = `${displayWidth}px`;
+			canvas.style.height = `${displayHeight}px`;
 		}
 	}
 
@@ -173,35 +196,45 @@
 		// Prevent body scrolling
 		document.body.style.overflow = 'hidden';
 
-		// Wait for DOM to update
-		await new Promise(resolve => setTimeout(resolve, 100));
+		// Wait for DOM to update and Svelte to re-render
+		await new Promise(resolve => setTimeout(resolve, 200));
 
-		// Get canvas context again for fullscreen canvas
+		// IMPORTANT: Reinitialize canvas context after DOM updates
 		if (canvas) {
-			ctx = canvas.getContext('2d')!;
+			ctx = canvas.getContext('2d', {
+				alpha: false,
+				desynchronized: true
+			})!;
+
+			// Force canvas resize
+			resizeCanvas();
 		}
 
-		// Try to enter browser fullscreen API
+		// Try to enter browser fullscreen API (works better on desktop)
 		if (fullscreenContainer?.requestFullscreen) {
 			fullscreenContainer.requestFullscreen().catch(() => {
-				// Fallback if fullscreen API fails
+				// Fallback if fullscreen API fails (common on mobile)
 			});
 		}
 
-		// Lock orientation to landscape if possible
+		// Lock orientation to landscape if possible (mobile only)
 		if (screen.orientation && 'lock' in screen.orientation) {
 			(screen.orientation as any).lock('landscape').catch(() => {
 				// Orientation lock not supported or failed
 			});
 		}
 
-		// Resize and redraw after entering fullscreen
+		// Additional delay for mobile rendering
 		setTimeout(() => {
-			if (!ctx || !canvas) return;
+			if (!ctx || !canvas) {
+				console.error('Canvas context not available after fullscreen');
+				return;
+			}
 
+			// Force another resize to ensure proper dimensions
 			resizeCanvas();
 
-			// Redraw current screen
+			// Redraw current screen with proper context
 			if (gameStarted && !gameOver) {
 				// Game is running, it will redraw in game loop
 			} else if (gameOver) {
@@ -213,7 +246,7 @@
 			} else {
 				drawStartScreen();
 			}
-		}, 150);
+		}, 300);
 	}
 
 	function exitFullscreen() {
@@ -235,7 +268,10 @@
 		setTimeout(() => {
 			// Reinitialize canvas context for normal canvas
 			if (canvas) {
-				ctx = canvas.getContext('2d')!;
+				ctx = canvas.getContext('2d', {
+					alpha: false,
+					desynchronized: true
+				})!;
 			}
 
 			resizeCanvas();
@@ -260,13 +296,13 @@
 		gameOver = false;
 		score = 0;
 
-		// Reset bird to center of current canvas size
-		bird.x = 50;
-		bird.y = canvas.height / 2;
+		// Reset bird to fixed position (consistent across all platforms)
+		bird.x = 80;
+		bird.y = GAME_HEIGHT / 2;
 		bird.velocity = 0;
 
 		pipes = [];
-		lastPipeX = canvas.width;
+		lastPipeX = GAME_WIDTH;
 
 		// Draw countdown screen
 		drawCountdown();
@@ -314,13 +350,13 @@
 		bird.y += bird.velocity;
 
 		// Generate spikes (like original game)
-		if (pipes.length === 0 || pipes[pipes.length - 1].x < canvas.width - 220) {
+		if (pipes.length === 0 || pipes[pipes.length - 1].x < GAME_WIDTH - 220) {
 			const minHeight = 50;
-			const maxHeight = canvas.height - config.pipeGap - minHeight;
+			const maxHeight = GAME_HEIGHT - config.pipeGap - minHeight;
 			const topHeight = Math.floor(Math.random() * (maxHeight - minHeight)) + minHeight;
 
 			pipes.push({
-				x: canvas.width,
+				x: GAME_WIDTH,
 				topHeight,
 				bottomY: topHeight + config.pipeGap,
 				passed: false,
@@ -328,7 +364,7 @@
 				bottomSpikeWidth: spikeWidth
 			});
 
-			lastPipeX = canvas.width;
+			lastPipeX = GAME_WIDTH;
 		}
 
 		// Update pipes
@@ -356,10 +392,10 @@
 			}
 		}
 
-		lastPipeX = pipes.length > 0 ? pipes[pipes.length - 1].x : canvas.width;
+		lastPipeX = pipes.length > 0 ? pipes[pipes.length - 1].x : GAME_WIDTH;
 
 		// Check bounds
-		if (bird.y - bird.radius < 0 || bird.y + bird.radius > canvas.height) {
+		if (bird.y - bird.radius < 0 || bird.y + bird.radius > GAME_HEIGHT) {
 			endGame();
 			return;
 		}
@@ -397,7 +433,7 @@
 			// Check collision with bottom spike (triangle pointing up)
 			if (bird.y + bird.radius > bottomSpikeTop) {
 				const relativeX = bird.x - bottomSpikeCenterX;
-				const slope = ((canvas.height - bottomSpikeTop) * 2) / pipe.bottomSpikeWidth;
+				const slope = ((GAME_HEIGHT - bottomSpikeTop) * 2) / pipe.bottomSpikeWidth;
 				const minYAtX = bottomSpikeTop + Math.abs(relativeX) * slope;
 
 				if (bird.y + bird.radius > minYAtX) {
@@ -449,7 +485,7 @@
 	function draw() {
 		// Fill with dark background
 		ctx.fillStyle = '#1a1a2e';
-		ctx.fillRect(0, 0, canvas.width, canvas.height);
+		ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
 
 		// Draw spikes (triangles) with enhanced shadows
 		ctx.fillStyle = pipeColor;
@@ -470,8 +506,8 @@
 
 			// Draw bottom spike (pointing up)
 			ctx.beginPath();
-			ctx.moveTo(pipe.x, canvas.height);
-			ctx.lineTo(pipe.x + pipe.bottomSpikeWidth, canvas.height);
+			ctx.moveTo(pipe.x, GAME_HEIGHT);
+			ctx.lineTo(pipe.x + pipe.bottomSpikeWidth, GAME_HEIGHT);
 			ctx.lineTo(pipe.x + (pipe.bottomSpikeWidth / 2), pipe.bottomY);
 			ctx.closePath();
 			ctx.fill();
@@ -521,8 +557,8 @@
 		ctx.shadowBlur = 6;
 		ctx.shadowOffsetX = 2;
 		ctx.shadowOffsetY = 2;
-		ctx.strokeText(score.toString(), canvas.width / 2, 50);
-		ctx.fillText(score.toString(), canvas.width / 2, 50);
+		ctx.strokeText(score.toString(), GAME_WIDTH / 2, 50);
+		ctx.fillText(score.toString(), GAME_WIDTH / 2, 50);
 		ctx.shadowColor = 'transparent';
 		ctx.shadowBlur = 0;
 		ctx.shadowOffsetX = 0;
@@ -534,7 +570,7 @@
 
 		// Fill with dark background
 		ctx.fillStyle = '#1a1a2e';
-		ctx.fillRect(0, 0, canvas.width, canvas.height);
+		ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
 
 		// Draw bird in center
 		ctx.beginPath();
@@ -551,8 +587,8 @@
 		ctx.lineWidth = 6;
 		ctx.font = 'bold 120px Arial';
 		ctx.textAlign = 'center';
-		ctx.strokeText(countdown.toString(), canvas.width / 2, canvas.height / 2 + 40);
-		ctx.fillText(countdown.toString(), canvas.width / 2, canvas.height / 2 + 40);
+		ctx.strokeText(countdown.toString(), GAME_WIDTH / 2, GAME_HEIGHT / 2 + 40);
+		ctx.fillText(countdown.toString(), GAME_WIDTH / 2, GAME_HEIGHT / 2 + 40);
 	}
 
 	function drawWaitingScreen() {
@@ -560,7 +596,7 @@
 
 		// Fill with dark background
 		ctx.fillStyle = '#1a1a2e';
-		ctx.fillRect(0, 0, canvas.width, canvas.height);
+		ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
 
 		// Draw bird hovering in center
 		ctx.beginPath();
@@ -578,8 +614,8 @@
 		ctx.font = 'bold 36px Arial';
 		ctx.textAlign = 'center';
 		const text = 'Click to Jump!';
-		ctx.strokeText(text, canvas.width / 2, canvas.height / 2 + 80);
-		ctx.fillText(text, canvas.width / 2, canvas.height / 2 + 80);
+		ctx.strokeText(text, GAME_WIDTH / 2, GAME_HEIGHT / 2 + 80);
+		ctx.fillText(text, GAME_WIDTH / 2, GAME_HEIGHT / 2 + 80);
 	}
 
 	function drawStartScreen() {
@@ -587,7 +623,7 @@
 
 		// Fill with dark background
 		ctx.fillStyle = '#1a1a2e';
-		ctx.fillRect(0, 0, canvas.width, canvas.height);
+		ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
 
 		// Draw bird
 		ctx.beginPath();
@@ -606,14 +642,14 @@
 		ctx.textAlign = 'center';
 
 		const text = 'Click or Press SPACE to Start';
-		ctx.strokeText(text, canvas.width / 2, canvas.height / 2);
-		ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+		ctx.strokeText(text, GAME_WIDTH / 2, GAME_HEIGHT / 2);
+		ctx.fillText(text, GAME_WIDTH / 2, GAME_HEIGHT / 2);
 
 		// Draw difficulty
 		ctx.font = 'bold 24px Arial';
 		const diffText = `Difficulty: ${difficulty.toUpperCase()}`;
-		ctx.strokeText(diffText, canvas.width / 2, canvas.height / 2 + 40);
-		ctx.fillText(diffText, canvas.width / 2, canvas.height / 2 + 40);
+		ctx.strokeText(diffText, GAME_WIDTH / 2, GAME_HEIGHT / 2 + 40);
+		ctx.fillText(diffText, GAME_WIDTH / 2, GAME_HEIGHT / 2 + 40);
 	}
 
 	function drawGameOver() {
@@ -621,7 +657,7 @@
 
 		// Semi-transparent overlay
 		ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-		ctx.fillRect(0, 0, canvas.width, canvas.height);
+		ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
 
 		// Game Over text
 		ctx.fillStyle = '#FF1493';
@@ -629,29 +665,29 @@
 		ctx.lineWidth = 4;
 		ctx.font = 'bold 48px Arial';
 		ctx.textAlign = 'center';
-		ctx.strokeText('GAME OVER', canvas.width / 2, canvas.height / 2 - 40);
-		ctx.fillText('GAME OVER', canvas.width / 2, canvas.height / 2 - 40);
+		ctx.strokeText('GAME OVER', GAME_WIDTH / 2, GAME_HEIGHT / 2 - 40);
+		ctx.fillText('GAME OVER', GAME_WIDTH / 2, GAME_HEIGHT / 2 - 40);
 
 		// Score
 		ctx.fillStyle = '#FFFFFF';
 		ctx.strokeStyle = '#000000';
 		ctx.font = 'bold 32px Arial';
 		const scoreText = `Score: ${score}`;
-		ctx.strokeText(scoreText, canvas.width / 2, canvas.height / 2 + 10);
-		ctx.fillText(scoreText, canvas.width / 2, canvas.height / 2 + 10);
+		ctx.strokeText(scoreText, GAME_WIDTH / 2, GAME_HEIGHT / 2 + 10);
+		ctx.fillText(scoreText, GAME_WIDTH / 2, GAME_HEIGHT / 2 + 10);
 
 		// Points earned
 		const points = Math.floor(score * config.pointMultiplier);
 		ctx.font = 'bold 24px Arial';
 		const pointsText = `Points: ${points}`;
-		ctx.strokeText(pointsText, canvas.width / 2, canvas.height / 2 + 50);
-		ctx.fillText(pointsText, canvas.width / 2, canvas.height / 2 + 50);
+		ctx.strokeText(pointsText, GAME_WIDTH / 2, GAME_HEIGHT / 2 + 50);
+		ctx.fillText(pointsText, GAME_WIDTH / 2, GAME_HEIGHT / 2 + 50);
 
 		// Restart instruction
 		ctx.font = 'bold 20px Arial';
 		const restartText = 'Click to Restart';
-		ctx.strokeText(restartText, canvas.width / 2, canvas.height / 2 + 90);
-		ctx.fillText(restartText, canvas.width / 2, canvas.height / 2 + 90);
+		ctx.strokeText(restartText, GAME_WIDTH / 2, GAME_HEIGHT / 2 + 90);
+		ctx.fillText(restartText, GAME_WIDTH / 2, GAME_HEIGHT / 2 + 90);
 	}
 
 	function toggleMute() {
