@@ -29,7 +29,7 @@
 		y: 250,
 		radius: 15,
 		velocity: 0,
-		color: '#00008B' // Blue balls
+		color: '#2563eb' // Bright blue for visibility
 	};
 
 	let pipes: Array<{
@@ -486,9 +486,9 @@
 			bird.y,
 			bird.radius
 		);
-		gradient.addColorStop(0, '#4169E1');
+		gradient.addColorStop(0, '#60a5fa');
 		gradient.addColorStop(0.7, bird.color);
-		gradient.addColorStop(1, '#000050');
+		gradient.addColorStop(1, '#1e40af');
 		ctx.fillStyle = gradient;
 		ctx.beginPath();
 		ctx.arc(bird.x, bird.y, bird.radius, 0, Math.PI * 2);
@@ -738,6 +738,29 @@
 					<div class="keyboard-hint-text">Press to jump</div>
 				</div>
 			{/if}
+
+			<!-- Fullscreen Game Over Modal -->
+			{#if showGameOverModal}
+				<div class="absolute inset-0 flex items-center justify-center z-50 bg-black/60 backdrop-blur-sm">
+					<div class="fullscreen-game-over-card">
+						<h2 class="text-5xl md:text-6xl font-bold text-secondary mb-6 animate-bounce-in">GAME OVER!</h2>
+						<p class="text-8xl md:text-9xl font-bold text-white mb-4 drop-shadow-2xl">{score}</p>
+						<p class="text-gray-300 mb-2 text-xl">Score</p>
+						<p class="text-3xl md:text-4xl font-bold text-primary mb-8">{Math.floor(score * config.pointMultiplier)} Points</p>
+
+						<div class="flex gap-4 justify-center">
+							<button on:click={shareScore} class="fullscreen-btn fullscreen-btn-secondary">
+								<Share2 size={24} />
+								Share
+							</button>
+							<button on:click={playAgain} class="fullscreen-btn fullscreen-btn-primary">
+								<RefreshCw size={24} />
+								Play Again
+							</button>
+						</div>
+					</div>
+				</div>
+			{/if}
 		</div>
 	{/if}
 </div>
@@ -937,5 +960,94 @@
 		50% {
 			transform: translateY(-10px);
 		}
+	}
+
+	/* Fullscreen Game Over Card */
+	.fullscreen-game-over-card {
+		background: linear-gradient(135deg, rgba(26, 26, 46, 0.95), rgba(37, 99, 235, 0.2));
+		backdrop-filter: blur(20px);
+		border: 3px solid rgba(37, 99, 235, 0.5);
+		border-radius: 24px;
+		padding: 48px;
+		text-align: center;
+		box-shadow:
+			0 0 60px rgba(37, 99, 235, 0.4),
+			0 20px 40px rgba(0, 0, 0, 0.5);
+		animation: scale-in 0.3s ease-out;
+		max-width: 600px;
+	}
+
+	.fullscreen-btn {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 12px;
+		padding: 16px 32px;
+		font-size: 18px;
+		font-weight: 700;
+		border-radius: 12px;
+		transition: all 0.2s ease;
+		cursor: pointer;
+		border: none;
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+	}
+
+	.fullscreen-btn:hover {
+		transform: translateY(-2px);
+		box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+	}
+
+	.fullscreen-btn:active {
+		transform: translateY(0);
+	}
+
+	.fullscreen-btn-primary {
+		background: linear-gradient(135deg, #E40078, #FF1493);
+		color: white;
+	}
+
+	.fullscreen-btn-primary:hover {
+		background: linear-gradient(135deg, #c0006a, #e01280);
+	}
+
+	.fullscreen-btn-secondary {
+		background: linear-gradient(135deg, #2563eb, #60a5fa);
+		color: white;
+	}
+
+	.fullscreen-btn-secondary:hover {
+		background: linear-gradient(135deg, #1d4ed8, #3b82f6);
+	}
+
+	@keyframes scale-in {
+		from {
+			opacity: 0;
+			transform: scale(0.8);
+		}
+		to {
+			opacity: 1;
+			transform: scale(1);
+		}
+	}
+
+	@keyframes bounce-in {
+		0% {
+			transform: scale(0.3);
+			opacity: 0;
+		}
+		50% {
+			transform: scale(1.05);
+		}
+		70% {
+			transform: scale(0.9);
+		}
+		100% {
+			transform: scale(1);
+			opacity: 1;
+		}
+	}
+
+	.animate-bounce-in {
+		animation: bounce-in 0.5s ease-out;
 	}
 </style>
