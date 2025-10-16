@@ -22,6 +22,8 @@
 	let isFullscreen = false; // Full-screen mobile mode
 	let isMobile = false; // Detect if mobile device
 	let fullscreenContainer: HTMLDivElement;
+	let demoMode = true; // Start in demo mode
+	let demoAnimationId: number;
 
 	// Fixed internal resolution for consistent gameplay across all devices
 	const GAME_WIDTH = 800;
@@ -104,8 +106,16 @@
 		resizeCanvas();
 		window.addEventListener('resize', resizeCanvas);
 
+		// Start demo mode automatically
+		startDemoMode();
+
 		// Input handlers
 		const handleInput = async () => {
+			// Stop demo mode when user interacts
+			if (demoMode) {
+				stopDemoMode();
+			}
+
 			if (countdown > 0) {
 				// Ignore input during countdown
 				return;
@@ -341,7 +351,136 @@
 		if (countdownInterval) {
 			clearInterval(countdownInterval);
 		}
+
+		// Return to demo mode after game over
+		startDemoMode();
+	}
+
+	// Demo Mode Functions
+	function startDemoMode() {
+		if (demoMode) return; // Already in demo mode
+
+		demoMode = true;
+		gameStarted = false;
+		gameOver = false;
+		score = 0;
+
+		// Reset bird position
+		bird.x = 80;
+		bird.y = GAME_HEIGHT / 2;
+		bird.velocity = 0;
+
+		// Generate initial obstacles
+		pipes = [];
+		lastPipeX = GAME_WIDTH;
+
+		// Start demo loop
+		demoLoop();
+	}
+
+	function stopDemoMode() {
+		demoMode = false;
+		if (demoAnimationId) {
+			cancelAnimationFrame(demoAnimationId);
+		}
+		pipes = [];
+		score = 0;
+		bird.velocity = 0;
+		bird.y = GAME_HEIGHT / 2;
 		drawStartScreen();
+	}
+
+	function demoLoop() {
+		if (!demoMode) return;
+
+		// Update bird physics
+		bird.velocity += config.gravity;
+		bird.y += bird.velocity;
+
+		// Bot AI: Jump when needed
+		const shouldJump = checkIfBotShouldJump();
+		if (shouldJump) {
+			bird.velocity = config.jump;
+		}
+
+		// Generate obstacles
+		if (pipes.length === 0 || pipes[pipes.length - 1].x < GAME_WIDTH - 220) {
+			const minHeight = 50;
+			const maxHeight = GAME_HEIGHT - config.pipeGap - minHeight;
+			const topHeight = Math.floor(Math.random() * (maxHeight - minHeight)) + minHeight;
+
+			pipes.push({
+				x: GAME_WIDTH,
+				topHeight,
+				bottomY: topHeight + config.pipeGap,
+				passed: false,
+				topSpikeWidth: spikeWidth,
+				bottomSpikeWidth: spikeWidth
+			});
+
+			lastPipeX = GAME_WIDTH;
+		}
+
+		// Update pipes
+		for (let i = pipes.length - 1; i >= 0; i--) {
+			const pipe = pipes[i];
+			pipe.x -= config.pipeSpeed;
+
+			// Remove off-screen pipes
+			if (pipe.x < -Math.max(pipe.topSpikeWidth, pipe.bottomSpikeWidth)) {
+				pipes.splice(i, 1);
+				continue;
+			}
+
+			// Score when passing spike center
+			if (!pipe.passed && pipe.x + (pipe.topSpikeWidth / 2) < bird.x) {
+				pipe.passed = true;
+				score++;
+			}
+
+			// Check collision - restart demo if hit
+			if (checkSpikeCollision(pipe)) {
+				startDemoMode(); // Restart demo seamlessly
+				return;
+			}
+		}
+
+		// Check bounds - restart if out
+		if (bird.y - bird.radius < 0 || bird.y + bird.radius > GAME_HEIGHT) {
+			startDemoMode(); // Restart demo seamlessly
+			return;
+		}
+
+		draw();
+		demoAnimationId = requestAnimationFrame(demoLoop);
+	}
+
+	function checkIfBotShouldJump(): boolean {
+		// Find the next obstacle
+		const nextPipe = pipes.find(pipe => pipe.x + pipe.topSpikeWidth > bird.x);
+		if (!nextPipe) return false;
+
+		// Calculate if we need to jump
+		const distanceToObstacle = nextPipe.x - bird.x;
+		const gapCenter = nextPipe.topHeight + (config.pipeGap / 2);
+		const predictedY = bird.y + (bird.velocity * 10); // Predict position
+
+		// Jump if:
+		// 1. We're close to the obstacle (within 150px)
+		// 2. We're below the center of the gap
+		// 3. Our predicted position will be too low
+		if (distanceToObstacle < 150 && distanceToObstacle > 50) {
+			if (predictedY > gapCenter + 30 || bird.y > gapCenter + 20) {
+				return true;
+			}
+		}
+
+		// Emergency jump if falling too low
+		if (bird.y > GAME_HEIGHT - 80) {
+			return true;
+		}
+
+		return false;
 	}
 
 	function gameLoop() {
@@ -727,12 +866,24 @@
 			{/if}
 		</button>
 
-		<canvas
-			bind:this={canvas}
-			on:click={handleInput}
-			class="w-full border-4 border-primary dark:border-secondary rounded-lg shadow-2xl cursor-pointer"
-			style="max-height: 500px;"
-		></canvas>
+		<div class="relative">
+			<canvas
+				bind:this={canvas}
+				on:click={handleInput}
+				class="w-full border-4 border-primary dark:border-secondary rounded-lg shadow-2xl cursor-pointer"
+				style="max-height: 500px;"
+			></canvas>
+
+			<!-- TAP TO PLAY Overlay for Demo Mode -->
+			{#if demoMode}
+				<div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+					<div class="tap-to-play-overlay animate-pulse-slow">
+						<div class="tap-to-play-text">TAP TO PLAY</div>
+						<div class="tap-to-play-subtitle">Watch the demo or start playing!</div>
+					</div>
+				</div>
+			{/if}
+		</div>
 
 		<div class="mt-4 text-center text-sm dark:text-gray-300">
 			<p>Click or press SPACE to jump</p>
@@ -1108,5 +1259,76 @@
 
 	.animate-bounce-in {
 		animation: bounce-in 0.5s ease-out;
+	}
+
+	/* TAP TO PLAY Overlay */
+	.tap-to-play-overlay {
+		background: linear-gradient(135deg, rgba(228, 0, 120, 0.95), rgba(255, 20, 147, 0.95));
+		backdrop-filter: blur(8px);
+		border: 4px solid white;
+		border-radius: 24px;
+		padding: 32px 48px;
+		box-shadow:
+			0 0 60px rgba(228, 0, 120, 0.8),
+			0 0 100px rgba(228, 0, 120, 0.5),
+			0 10px 30px rgba(0, 0, 0, 0.5),
+			inset 0 -4px 10px rgba(0, 0, 0, 0.3),
+			inset 0 4px 10px rgba(255, 255, 255, 0.3);
+		text-align: center;
+		transform: scale(1);
+		transition: transform 0.3s ease;
+	}
+
+	.tap-to-play-overlay:hover {
+		transform: scale(1.05);
+	}
+
+	.tap-to-play-text {
+		font-size: 48px;
+		font-weight: 900;
+		color: white;
+		text-shadow:
+			0 4px 8px rgba(0, 0, 0, 0.5),
+			0 0 20px rgba(255, 255, 255, 0.5);
+		letter-spacing: 4px;
+		text-transform: uppercase;
+		margin-bottom: 8px;
+	}
+
+	.tap-to-play-subtitle {
+		font-size: 16px;
+		font-weight: 600;
+		color: rgba(255, 255, 255, 0.9);
+		text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+	}
+
+	@keyframes pulse-slow {
+		0%, 100% {
+			opacity: 1;
+			transform: scale(1);
+		}
+		50% {
+			opacity: 0.85;
+			transform: scale(1.02);
+		}
+	}
+
+	.animate-pulse-slow {
+		animation: pulse-slow 2s ease-in-out infinite;
+	}
+
+	/* Mobile responsive */
+	@media (max-width: 640px) {
+		.tap-to-play-text {
+			font-size: 32px;
+		}
+
+		.tap-to-play-subtitle {
+			font-size: 12px;
+		}
+
+		.tap-to-play-overlay {
+			padding: 24px 32px;
+		}
 	}
 </style>
