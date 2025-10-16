@@ -2,7 +2,7 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { createEventDispatcher } from 'svelte';
 	import { GAME_CONFIG, type Difficulty } from '$lib/utils/gameConfig';
-	import { Volume2, VolumeX, Share2, RefreshCw } from 'lucide-svelte';
+	import { Volume2, VolumeX, Share2, RefreshCw, X, Maximize2 } from 'lucide-svelte';
 
 	export let difficulty: Difficulty = 'easy';
 
@@ -19,6 +19,9 @@
 	let countdownInterval: number;
 	let waitingForFirstJump = false; // True after countdown, waiting for first jump
 	let showGameOverModal = false; // Show the game over modal
+	let isFullscreen = false; // Full-screen mobile mode
+	let isMobile = false; // Detect if mobile device
+	let fullscreenContainer: HTMLDivElement;
 
 	// Game objects
 	let bird = {
@@ -87,6 +90,9 @@
 	onMount(() => {
 		if (!canvas) return;
 
+		// Detect mobile device
+		isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 768;
+
 		ctx = canvas.getContext('2d')!;
 		resizeCanvas();
 		window.addEventListener('resize', resizeCanvas);
@@ -137,9 +143,79 @@
 	function resizeCanvas() {
 		const container = canvas.parentElement;
 		if (container) {
-			canvas.width = container.clientWidth;
-			canvas.height = Math.min(500, container.clientWidth * 0.6);
+			if (isFullscreen) {
+				// In fullscreen mode, use full viewport dimensions
+				canvas.width = window.innerWidth;
+				canvas.height = window.innerHeight;
+			} else {
+				canvas.width = container.clientWidth;
+				canvas.height = Math.min(500, container.clientWidth * 0.6);
+			}
 		}
+	}
+
+	function enterFullscreen() {
+		isFullscreen = true;
+
+		// Try to enter browser fullscreen API
+		if (fullscreenContainer?.requestFullscreen) {
+			fullscreenContainer.requestFullscreen().catch(() => {
+				// Fallback if fullscreen API fails
+			});
+		}
+
+		// Lock orientation to landscape if possible
+		if (screen.orientation && 'lock' in screen.orientation) {
+			(screen.orientation as any).lock('landscape').catch(() => {
+				// Orientation lock not supported or failed
+			});
+		}
+
+		resizeCanvas();
+
+		// Redraw current screen
+		if (gameStarted && !gameOver) {
+			// Game is running, it will redraw in game loop
+		} else if (gameOver) {
+			draw();
+		} else if (waitingForFirstJump) {
+			drawWaitingScreen();
+		} else if (countdown > 0) {
+			drawCountdown();
+		} else {
+			drawStartScreen();
+		}
+	}
+
+	function exitFullscreen() {
+		isFullscreen = false;
+
+		// Exit browser fullscreen
+		if (document.fullscreenElement) {
+			document.exitFullscreen();
+		}
+
+		// Unlock orientation
+		if (screen.orientation && 'unlock' in screen.orientation) {
+			(screen.orientation as any).unlock();
+		}
+
+		setTimeout(() => {
+			resizeCanvas();
+
+			// Redraw current screen
+			if (gameStarted && !gameOver) {
+				// Game is running, it will redraw in game loop
+			} else if (gameOver) {
+				draw();
+			} else if (waitingForFirstJump) {
+				drawWaitingScreen();
+			} else if (countdown > 0) {
+				drawCountdown();
+			} else {
+				drawStartScreen();
+			}
+		}, 100);
 	}
 
 	function startCountdown() {
@@ -334,9 +410,15 @@
 		ctx.fillStyle = '#4ec0ca';
 		ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-		// Draw spikes (triangles) exactly like original game
+		// Draw spikes (triangles) with enhanced shadows
 		ctx.fillStyle = pipeColor;
 		for (const pipe of pipes) {
+			// Add shadow for depth
+			ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+			ctx.shadowBlur = 8;
+			ctx.shadowOffsetX = 3;
+			ctx.shadowOffsetY = 3;
+
 			// Draw top spike (pointing down)
 			ctx.beginPath();
 			ctx.moveTo(pipe.x, 0);
@@ -352,22 +434,58 @@
 			ctx.lineTo(pipe.x + (pipe.bottomSpikeWidth / 2), pipe.bottomY);
 			ctx.closePath();
 			ctx.fill();
+
+			// Reset shadow
+			ctx.shadowColor = 'transparent';
+			ctx.shadowBlur = 0;
+			ctx.shadowOffsetX = 0;
+			ctx.shadowOffsetY = 0;
 		}
 
-		// Draw bird (blue ball)
+		// Draw bird (blue ball) with glow effect
+		// Outer glow
+		ctx.shadowColor = bird.color;
+		ctx.shadowBlur = 20;
 		ctx.beginPath();
 		ctx.arc(bird.x, bird.y, bird.radius, 0, Math.PI * 2);
 		ctx.fillStyle = bird.color;
 		ctx.fill();
 
-		// Draw score
+		// Inner highlight for 3D effect
+		ctx.shadowColor = 'transparent';
+		ctx.shadowBlur = 0;
+		const gradient = ctx.createRadialGradient(
+			bird.x - bird.radius / 3,
+			bird.y - bird.radius / 3,
+			0,
+			bird.x,
+			bird.y,
+			bird.radius
+		);
+		gradient.addColorStop(0, '#4169E1');
+		gradient.addColorStop(0.7, bird.color);
+		gradient.addColorStop(1, '#000050');
+		ctx.fillStyle = gradient;
+		ctx.beginPath();
+		ctx.arc(bird.x, bird.y, bird.radius, 0, Math.PI * 2);
+		ctx.fill();
+
+		// Draw score with enhanced styling
 		ctx.fillStyle = '#FFFFFF';
 		ctx.strokeStyle = '#000000';
-		ctx.lineWidth = 3;
-		ctx.font = 'bold 36px Arial';
+		ctx.lineWidth = 4;
+		ctx.font = 'bold 42px Arial';
 		ctx.textAlign = 'center';
+		ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+		ctx.shadowBlur = 6;
+		ctx.shadowOffsetX = 2;
+		ctx.shadowOffsetY = 2;
 		ctx.strokeText(score.toString(), canvas.width / 2, 50);
 		ctx.fillText(score.toString(), canvas.width / 2, 50);
+		ctx.shadowColor = 'transparent';
+		ctx.shadowBlur = 0;
+		ctx.shadowOffsetX = 0;
+		ctx.shadowOffsetY = 0;
 	}
 
 	function drawCountdown() {
@@ -501,31 +619,106 @@
 </script>
 
 <div class="relative">
-	<button
-		on:click={toggleMute}
-		class="absolute top-4 right-4 z-10 bg-white/90 dark:bg-dark-accent/90 p-2 rounded-lg hover:bg-white dark:hover:bg-dark-accent transition shadow-lg"
-		aria-label={muted ? 'Unmute' : 'Mute'}
-	>
-		{#if muted}
-			<VolumeX size={24} class="text-gray-700 dark:text-white" />
-		{:else}
-			<Volume2 size={24} class="text-gray-700 dark:text-white" />
-		{/if}
-	</button>
+	{#if !isFullscreen}
+		<!-- Normal Mode UI -->
+		<button
+			on:click={toggleMute}
+			class="absolute top-4 right-4 z-10 bg-white/90 dark:bg-dark-accent/90 p-2 rounded-lg hover:bg-white dark:hover:bg-dark-accent transition shadow-lg"
+			aria-label={muted ? 'Unmute' : 'Mute'}
+		>
+			{#if muted}
+				<VolumeX size={24} class="text-gray-700 dark:text-white" />
+			{:else}
+				<Volume2 size={24} class="text-gray-700 dark:text-white" />
+			{/if}
+		</button>
 
-	<canvas
-		bind:this={canvas}
-		class="w-full border-4 border-primary dark:border-secondary rounded-lg shadow-2xl cursor-pointer"
-		style="max-height: 500px;"
-	></canvas>
+		<!-- Fullscreen button for all users -->
+		<button
+			on:click={enterFullscreen}
+			class="absolute top-4 left-4 z-10 bg-gradient-to-r from-primary to-secondary text-white p-3 rounded-lg hover:opacity-90 transition shadow-xl group"
+			aria-label="Enter fullscreen"
+			title="Play in fullscreen"
+		>
+			<Maximize2 size={24} />
+			{#if !isMobile}
+				<span class="absolute left-full ml-2 top-1/2 -translate-y-1/2 whitespace-nowrap bg-gray-900 text-white text-sm px-3 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+					Fullscreen Mode
+				</span>
+			{/if}
+		</button>
 
-	<div class="mt-4 text-center text-sm dark:text-gray-300">
-		<p>Click or press SPACE to jump</p>
-		<p class="mt-1">Avoid the pink obstacles!</p>
-	</div>
+		<canvas
+			bind:this={canvas}
+			class="w-full border-4 border-primary dark:border-secondary rounded-lg shadow-2xl cursor-pointer"
+			style="max-height: 500px;"
+		></canvas>
+
+		<div class="mt-4 text-center text-sm dark:text-gray-300">
+			<p>Click or press SPACE to jump</p>
+			<p class="mt-1">Avoid the pink obstacles!</p>
+			{#if !isMobile}
+				<p class="mt-2 text-xs text-primary dark:text-secondary font-semibold">
+					💡 Try fullscreen mode for an immersive experience!
+				</p>
+			{/if}
+		</div>
+	{:else}
+		<!-- Fullscreen Mode UI -->
+		<div bind:this={fullscreenContainer} class="fullscreen-container">
+			<!-- Exit Button (Top Left) -->
+			<button
+				on:click={exitFullscreen}
+				class="absolute top-4 left-4 z-50 bg-red-500 text-white p-4 rounded-full hover:bg-red-600 transition-all shadow-2xl animate-pulse-subtle"
+				aria-label="Exit fullscreen"
+				style="box-shadow: 0 0 20px rgba(239, 68, 68, 0.5);"
+			>
+				<X size={32} class="drop-shadow-lg" />
+			</button>
+
+			<!-- Mute Button (Top Right) -->
+			<button
+				on:click={toggleMute}
+				class="absolute top-4 right-4 z-50 bg-white/90 backdrop-blur-sm p-4 rounded-full hover:bg-white transition-all shadow-2xl"
+				aria-label={muted ? 'Unmute' : 'Mute'}
+			>
+				{#if muted}
+					<VolumeX size={28} class="text-gray-700" />
+				{:else}
+					<Volume2 size={28} class="text-gray-700" />
+				{/if}
+			</button>
+
+			<!-- Game Canvas -->
+			<canvas
+				bind:this={canvas}
+				class="fullscreen-canvas"
+			></canvas>
+
+			<!-- TAP Button (Bottom Right) - Show during gameplay on mobile, or as hint on desktop -->
+			{#if gameStarted && !gameOver && isMobile}
+				<button
+					on:click={jump}
+					class="absolute bottom-8 right-8 z-50 tap-button"
+					aria-label="Tap to jump"
+				>
+					<div class="tap-button-inner">
+						<span class="tap-text">TAP</span>
+					</div>
+					<div class="tap-ripple"></div>
+				</button>
+			{:else if gameStarted && !gameOver && !isMobile}
+				<!-- Desktop keyboard hint -->
+				<div class="absolute bottom-8 right-8 z-50 keyboard-hint">
+					<div class="keyboard-key">SPACE</div>
+					<div class="keyboard-hint-text">Press to jump</div>
+				</div>
+			{/if}
+		</div>
+	{/if}
 </div>
 
-{#if showGameOverModal}
+{#if showGameOverModal && !isFullscreen}
 	<div class="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
 		<div class="bg-white dark:bg-dark-secondary rounded-lg p-8 max-w-md w-full mx-4 text-center shadow-2xl">
 			<h2 class="text-4xl font-bold text-secondary mb-4">GAME OVER!</h2>
@@ -546,3 +739,176 @@
 		</div>
 	</div>
 {/if}
+
+<style>
+	/* Fullscreen container */
+	.fullscreen-container {
+		position: fixed;
+		top: 0;
+		left: 0;
+		width: 100vw;
+		height: 100vh;
+		background: #4ec0ca;
+		z-index: 9999;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		overflow: hidden;
+	}
+
+	/* Fullscreen canvas */
+	.fullscreen-canvas {
+		width: 100vw;
+		height: 100vh;
+		cursor: pointer;
+		touch-action: none;
+	}
+
+	/* TAP Button - Vibrant and Eye-catching */
+	.tap-button {
+		width: 120px;
+		height: 120px;
+		border-radius: 50%;
+		background: linear-gradient(135deg, #E40078 0%, #FF1493 50%, #FF69B4 100%);
+		border: 4px solid white;
+		box-shadow:
+			0 0 30px rgba(228, 0, 120, 0.6),
+			0 0 60px rgba(228, 0, 120, 0.4),
+			0 8px 20px rgba(0, 0, 0, 0.3),
+			inset 0 -4px 10px rgba(0, 0, 0, 0.2),
+			inset 0 4px 10px rgba(255, 255, 255, 0.3);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		position: relative;
+		cursor: pointer;
+		transition: all 0.2s ease;
+		animation: tap-pulse 1.5s ease-in-out infinite;
+	}
+
+	.tap-button:active {
+		transform: scale(0.95);
+		box-shadow:
+			0 0 20px rgba(228, 0, 120, 0.8),
+			0 0 40px rgba(228, 0, 120, 0.6),
+			0 4px 10px rgba(0, 0, 0, 0.3);
+	}
+
+	.tap-button-inner {
+		width: 100%;
+		height: 100%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		border-radius: 50%;
+		background: radial-gradient(circle at 40% 40%, rgba(255, 255, 255, 0.3), transparent);
+	}
+
+	.tap-text {
+		font-size: 28px;
+		font-weight: 900;
+		color: white;
+		text-shadow:
+			0 2px 4px rgba(0, 0, 0, 0.3),
+			0 0 10px rgba(255, 255, 255, 0.5);
+		letter-spacing: 2px;
+		text-transform: uppercase;
+	}
+
+	.tap-ripple {
+		position: absolute;
+		width: 100%;
+		height: 100%;
+		border-radius: 50%;
+		border: 3px solid rgba(228, 0, 120, 0.6);
+		animation: ripple 1.5s ease-out infinite;
+	}
+
+	/* Animations */
+	@keyframes tap-pulse {
+		0%, 100% {
+			transform: scale(1);
+		}
+		50% {
+			transform: scale(1.05);
+		}
+	}
+
+	@keyframes ripple {
+		0% {
+			transform: scale(1);
+			opacity: 1;
+		}
+		100% {
+			transform: scale(1.5);
+			opacity: 0;
+		}
+	}
+
+	@keyframes animate-pulse-subtle {
+		0%, 100% {
+			opacity: 1;
+		}
+		50% {
+			opacity: 0.8;
+		}
+	}
+
+	.animate-pulse-subtle {
+		animation: animate-pulse-subtle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+	}
+
+	/* Ensure buttons are visible on top */
+	button {
+		-webkit-tap-highlight-color: transparent;
+		user-select: none;
+	}
+
+	/* Desktop keyboard hint */
+	.keyboard-hint {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 8px;
+		animation: float 2s ease-in-out infinite;
+	}
+
+	.keyboard-key {
+		background: linear-gradient(135deg, #E40078 0%, #FF1493 50%, #FF69B4 100%);
+		color: white;
+		padding: 16px 24px;
+		border-radius: 12px;
+		font-size: 24px;
+		font-weight: 900;
+		letter-spacing: 2px;
+		box-shadow:
+			0 0 30px rgba(228, 0, 120, 0.6),
+			0 8px 20px rgba(0, 0, 0, 0.3),
+			inset 0 -4px 10px rgba(0, 0, 0, 0.2),
+			inset 0 4px 10px rgba(255, 255, 255, 0.3);
+		border: 3px solid white;
+		text-shadow:
+			0 2px 4px rgba(0, 0, 0, 0.3),
+			0 0 10px rgba(255, 255, 255, 0.5);
+	}
+
+	.keyboard-hint-text {
+		color: white;
+		font-size: 16px;
+		font-weight: 600;
+		text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+		background: rgba(0, 0, 0, 0.3);
+		padding: 6px 12px;
+		border-radius: 6px;
+		backdrop-filter: blur(4px);
+	}
+
+	@keyframes float {
+		0%, 100% {
+			transform: translateY(0px);
+		}
+		50% {
+			transform: translateY(-10px);
+		}
+	}
+</style>
