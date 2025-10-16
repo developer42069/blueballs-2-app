@@ -154,8 +154,14 @@
 		}
 	}
 
-	function enterFullscreen() {
+	async function enterFullscreen() {
 		isFullscreen = true;
+
+		// Prevent body scrolling
+		document.body.style.overflow = 'hidden';
+
+		// Wait for DOM to update
+		await new Promise(resolve => setTimeout(resolve, 50));
 
 		// Try to enter browser fullscreen API
 		if (fullscreenContainer?.requestFullscreen) {
@@ -171,24 +177,30 @@
 			});
 		}
 
-		resizeCanvas();
+		// Resize and redraw after entering fullscreen
+		setTimeout(() => {
+			resizeCanvas();
 
-		// Redraw current screen
-		if (gameStarted && !gameOver) {
-			// Game is running, it will redraw in game loop
-		} else if (gameOver) {
-			draw();
-		} else if (waitingForFirstJump) {
-			drawWaitingScreen();
-		} else if (countdown > 0) {
-			drawCountdown();
-		} else {
-			drawStartScreen();
-		}
+			// Redraw current screen
+			if (gameStarted && !gameOver) {
+				// Game is running, it will redraw in game loop
+			} else if (gameOver) {
+				draw();
+			} else if (waitingForFirstJump) {
+				drawWaitingScreen();
+			} else if (countdown > 0) {
+				drawCountdown();
+			} else {
+				drawStartScreen();
+			}
+		}, 100);
 	}
 
 	function exitFullscreen() {
 		isFullscreen = false;
+
+		// Restore body scrolling
+		document.body.style.overflow = '';
 
 		// Exit browser fullscreen
 		if (document.fullscreenElement) {
@@ -748,12 +760,15 @@
 		left: 0;
 		width: 100vw;
 		height: 100vh;
+		max-width: 100vw;
+		max-height: 100vh;
 		background: #4ec0ca;
 		z-index: 9999;
 		display: flex;
 		align-items: center;
 		justify-content: center;
 		overflow: hidden;
+		-webkit-overflow-scrolling: none;
 	}
 
 	/* Fullscreen canvas */
