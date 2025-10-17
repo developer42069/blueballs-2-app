@@ -262,7 +262,7 @@
   }
 </script>
 
-<div class="min-h-screen">
+<div class="min-h-screen flex flex-col">
   <!-- Header -->
   <header
     class="fixed top-0 left-0 right-0 z-50 bg-primary dark:bg-accent shadow-lg"
@@ -583,12 +583,12 @@
   </aside>
 
   <!-- Main Content -->
-  <main class="pt-16 pb-16 {leftMenuOpen && !isMobile ? 'ml-64' : ''} transition-all">
+  <main class="flex-1 pt-16 pb-16 {leftMenuOpen && !isMobile ? 'ml-64' : ''} transition-all">
     <slot />
   </main>
 
   <!-- Footer -->
-  <footer class="bg-gray-100 dark:bg-dark-secondary border-t border-gray-200 dark:border-gray-700 py-4 {leftMenuOpen && !isMobile ? 'ml-64' : ''} transition-all">
+  <footer class="bg-gray-100 dark:bg-dark-secondary border-t border-gray-200 dark:border-gray-700 py-4 {leftMenuOpen && !isMobile ? 'ml-64' : ''} transition-all mt-auto">
     <div class="max-w-7xl mx-auto px-4">
       <div class="flex flex-col md:flex-row items-center justify-between gap-2 text-sm text-gray-600 dark:text-gray-400">
         <div class="text-center md:text-left">
