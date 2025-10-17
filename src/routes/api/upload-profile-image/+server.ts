@@ -1,6 +1,5 @@
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import sharp from 'sharp';
 import { uploadToR2, deleteFromR2, generateProfileImageKey, extractKeyFromUrl } from '$lib/r2';
 import { supabase } from '$lib/supabase';
 
@@ -9,10 +8,6 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
 // Allowed image types
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
-
-// Image dimensions
-const IMAGE_WIDTH = 400;
-const IMAGE_HEIGHT = 400;
 
 export const POST: RequestHandler = async ({ request, cookies }) => {
 	try {
@@ -47,27 +42,18 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 			throw error(400, `File too large. Maximum size: ${MAX_FILE_SIZE / 1024 / 1024}MB`);
 		}
 
-		// Convert file to buffer
+		// Convert file to buffer (no server-side processing for Cloudflare Workers compatibility)
 		const arrayBuffer = await file.arrayBuffer();
 		const buffer = Buffer.from(arrayBuffer);
 
-		// Optimize and resize image using sharp
-		const optimizedImage = await sharp(buffer)
-			.resize(IMAGE_WIDTH, IMAGE_HEIGHT, {
-				fit: 'cover',
-				position: 'center'
-			})
-			.webp({ quality: 85 }) // Convert to WebP for better compression
-			.toBuffer();
-
-		// Get file extension
-		const extension = 'webp';
+		// Get file extension from original file type
+		const extension = file.type.split('/')[1] || 'jpg';
 
 		// Generate unique key for the image (automatically creates user-profiles folder)
 		const key = generateProfileImageKey(user.id, extension);
 
-		// Upload to R2
-		const imageUrl = await uploadToR2(optimizedImage, key, 'image/webp');
+		// Upload to R2 (image is already resized/optimized on client side)
+		const imageUrl = await uploadToR2(buffer, key, file.type);
 
 		// Get the user's current profile image to delete old one
 		const { data: profile } = await supabase

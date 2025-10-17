@@ -12,6 +12,59 @@
 
 	$: displayUrl = previewUrl || currentImageUrl;
 
+	async function resizeImage(file: File): Promise<File> {
+		return new Promise((resolve, reject) => {
+			const reader = new FileReader();
+			reader.onload = (e) => {
+				const img = new Image();
+				img.onload = () => {
+					// Create canvas
+					const canvas = document.createElement('canvas');
+					const ctx = canvas.getContext('2d');
+
+					if (!ctx) {
+						reject(new Error('Failed to get canvas context'));
+						return;
+					}
+
+					// Set desired dimensions
+					const maxSize = 400;
+					canvas.width = maxSize;
+					canvas.height = maxSize;
+
+					// Calculate scaling and positioning for cover effect
+					const scale = Math.max(maxSize / img.width, maxSize / img.height);
+					const x = (maxSize - img.width * scale) / 2;
+					const y = (maxSize - img.height * scale) / 2;
+
+					// Draw image
+					ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
+
+					// Convert to blob
+					canvas.toBlob(
+						(blob) => {
+							if (blob) {
+								const resizedFile = new File([blob], file.name, {
+									type: 'image/jpeg',
+									lastModified: Date.now()
+								});
+								resolve(resizedFile);
+							} else {
+								reject(new Error('Failed to create blob'));
+							}
+						},
+						'image/jpeg',
+						0.85
+					);
+				};
+				img.onerror = () => reject(new Error('Failed to load image'));
+				img.src = e.target?.result as string;
+			};
+			reader.onerror = () => reject(new Error('Failed to read file'));
+			reader.readAsDataURL(file);
+		});
+	}
+
 	async function handleFileSelect(event: Event) {
 		const target = event.target as HTMLInputElement;
 		const file = target.files?.[0];
@@ -25,22 +78,33 @@
 			return;
 		}
 
-		// Validate file size (5MB)
-		const maxSize = 5 * 1024 * 1024;
+		// Validate file size (10MB before resizing)
+		const maxSize = 10 * 1024 * 1024;
 		if (file.size > maxSize) {
-			error = 'Image must be smaller than 5MB';
+			error = 'Image must be smaller than 10MB';
 			return;
 		}
 
-		// Show preview
-		const reader = new FileReader();
-		reader.onload = (e) => {
-			previewUrl = e.target?.result as string;
-		};
-		reader.readAsDataURL(file);
+		uploading = true;
+		error = '';
 
-		// Upload the file
-		await uploadImage(file);
+		try {
+			// Resize image on client side
+			const resizedFile = await resizeImage(file);
+
+			// Show preview
+			const reader = new FileReader();
+			reader.onload = (e) => {
+				previewUrl = e.target?.result as string;
+			};
+			reader.readAsDataURL(resizedFile);
+
+			// Upload the resized file
+			await uploadImage(resizedFile);
+		} catch (err: any) {
+			error = err.message || 'Failed to process image';
+			uploading = false;
+		}
 	}
 
 	async function uploadImage(file: File) {
