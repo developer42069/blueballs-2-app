@@ -1,6 +1,7 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { supabase } from '$lib/supabase';
+import { createClient } from '@supabase/supabase-js';
+import { PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY } from '$env/static/public';
 import Stripe from 'stripe';
 import { STRIPE_SECRET_KEY, STRIPE_PRICE_ID_MID, STRIPE_PRICE_ID_BIG } from '$env/static/private';
 
@@ -23,9 +24,21 @@ export const POST: RequestHandler = async ({ request }) => {
 			return json({ success: false, error: 'Unauthorized' }, { status: 401 });
 		}
 
+		// Create a Supabase client with the user's token
+		const supabase = createClient(
+			PUBLIC_SUPABASE_URL,
+			PUBLIC_SUPABASE_ANON_KEY,
+			{
+				global: {
+					headers: {
+						Authorization: authHeader
+					}
+				}
+			}
+		);
+
 		// Get user from Supabase auth
-		const token = authHeader.replace('Bearer ', '');
-		const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+		const { data: { user }, error: authError } = await supabase.auth.getUser();
 
 		if (authError || !user) {
 			return json({ success: false, error: 'Unauthorized' }, { status: 401 });
