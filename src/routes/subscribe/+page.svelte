@@ -27,6 +27,31 @@
 		analytics.viewSubscription();
 
 		loading = false;
+
+		// Reset processing state when user returns to the page (e.g., from Stripe back button)
+		// This ensures the UI is not stuck in a loading state
+		const handleVisibilityChange = () => {
+			if (document.visibilityState === 'visible') {
+				processingCheckout = false;
+				changingSubscription = false;
+			}
+		};
+
+		document.addEventListener('visibilitychange', handleVisibilityChange);
+
+		// Also reset when page gains focus (more reliable for some browsers)
+		const handleFocus = () => {
+			processingCheckout = false;
+			changingSubscription = false;
+		};
+
+		window.addEventListener('focus', handleFocus);
+
+		// Cleanup
+		return () => {
+			document.removeEventListener('visibilitychange', handleVisibilityChange);
+			window.removeEventListener('focus', handleFocus);
+		};
 	});
 
 	async function handleSubscribe(tier: 'mid' | 'big') {

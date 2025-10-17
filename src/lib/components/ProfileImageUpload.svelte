@@ -112,12 +112,15 @@
 		error = '';
 
 		try {
+			// Note: We're using cookie-based authentication, so no need to set Authorization header
+			// The server will automatically read the session from the sb-access-token cookie
 			const formData = new FormData();
 			formData.append('image', file);
 
 			const response = await fetch('/api/upload-profile-image', {
 				method: 'POST',
-				body: formData
+				body: formData,
+				credentials: 'include' // Important: ensures cookies are sent with the request
 			});
 
 			const data = await response.json();
