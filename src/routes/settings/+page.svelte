@@ -465,13 +465,6 @@
 						Profile Picture
 					</h2>
 
-					<div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-400 text-blue-700 dark:text-blue-400 px-4 py-3 rounded mb-4">
-						<p class="font-bold mb-1">Free for Everyone!</p>
-						<p class="text-sm">
-							All users can now upload profile pictures, hosted on our super-fast CDN at cdn.blueballs.lol
-						</p>
-					</div>
-
 					<div class="flex justify-center">
 						<ProfileImageUpload
 							currentImageUrl={profileImageUrl}
