@@ -1263,17 +1263,17 @@
 
 	/* TAP TO PLAY Overlay */
 	.tap-to-play-overlay {
-		background: linear-gradient(135deg, rgba(228, 0, 120, 0.95), rgba(255, 20, 147, 0.95));
-		backdrop-filter: blur(8px);
-		border: 4px solid white;
-		border-radius: 24px;
-		padding: 32px 48px;
+		background: linear-gradient(135deg, rgba(228, 0, 120, 0.92), rgba(255, 20, 147, 0.92));
+		backdrop-filter: blur(6px);
+		border: 3px solid rgba(255, 255, 255, 0.9);
+		border-radius: 16px;
+		padding: 16px 32px;
 		box-shadow:
-			0 0 60px rgba(228, 0, 120, 0.8),
-			0 0 100px rgba(228, 0, 120, 0.5),
-			0 10px 30px rgba(0, 0, 0, 0.5),
-			inset 0 -4px 10px rgba(0, 0, 0, 0.3),
-			inset 0 4px 10px rgba(255, 255, 255, 0.3);
+			0 0 40px rgba(228, 0, 120, 0.6),
+			0 0 80px rgba(228, 0, 120, 0.3),
+			0 8px 20px rgba(0, 0, 0, 0.4),
+			inset 0 -2px 6px rgba(0, 0, 0, 0.2),
+			inset 0 2px 6px rgba(255, 255, 255, 0.25);
 		text-align: center;
 		transform: scale(1);
 		transition: transform 0.3s ease;
@@ -1284,22 +1284,14 @@
 	}
 
 	.tap-to-play-text {
-		font-size: 48px;
-		font-weight: 900;
+		font-size: 24px;
+		font-weight: 700;
 		color: white;
 		text-shadow:
-			0 4px 8px rgba(0, 0, 0, 0.5),
-			0 0 20px rgba(255, 255, 255, 0.5);
-		letter-spacing: 4px;
+			0 2px 4px rgba(0, 0, 0, 0.4),
+			0 0 15px rgba(255, 255, 255, 0.3);
+		letter-spacing: 2px;
 		text-transform: uppercase;
-		margin-bottom: 8px;
-	}
-
-	.tap-to-play-subtitle {
-		font-size: 16px;
-		font-weight: 600;
-		color: rgba(255, 255, 255, 0.9);
-		text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
 	}
 
 	@keyframes pulse-slow {
@@ -1320,15 +1312,13 @@
 	/* Mobile responsive */
 	@media (max-width: 640px) {
 		.tap-to-play-text {
-			font-size: 32px;
-		}
-
-		.tap-to-play-subtitle {
-			font-size: 12px;
+			font-size: 18px;
+			letter-spacing: 1.5px;
 		}
 
 		.tap-to-play-overlay {
-			padding: 24px 32px;
+			padding: 12px 24px;
+			border-radius: 12px;
 		}
 	}
 </style>
