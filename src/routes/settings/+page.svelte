@@ -6,10 +6,10 @@
 	import { theme } from '$lib/stores/theme';
 	import { Settings, Globe, Link2, MessageSquare, Users, Image, CheckCircle, X, Upload, Eye, Bell, Volume2, Gamepad2, Shield, Trash2, Key, LogOut } from 'lucide-svelte';
 	import { analytics } from '$lib/analytics';
+	import ProfileImageUpload from '$lib/components/ProfileImageUpload.svelte';
 
 	let loading = true;
 	let saving = false;
-	let uploadingImage = false;
 	let error = '';
 	let success = '';
 	let activeTab: 'profile' | 'preferences' | 'privacy' | 'account' = 'profile';
@@ -22,7 +22,7 @@
 	let socialLink = '';
 	let messageToWorld = '';
 	let allowFriendRequests = true;
-	let profilePictureUrl = '';
+	let profileImageUrl = '';
 
 	// Preferences
 	let soundEffects = true;
@@ -36,11 +36,6 @@
 	let newPassword = '';
 	let confirmPassword = '';
 	let changingPassword = false;
-
-	// File upload
-	let fileInput: HTMLInputElement;
-	let selectedFile: File | null = null;
-	let previewUrl = '';
 
 	const socialPlatforms = [
 		{ value: '', label: 'None' },
@@ -128,8 +123,7 @@
 		socialLink = $profile.social_link || '';
 		messageToWorld = $profile.message_to_world || '';
 		allowFriendRequests = $profile.allow_friend_requests;
-		profilePictureUrl = $profile.profile_picture_url || '';
-		previewUrl = profilePictureUrl;
+		profileImageUrl = $profile.profile_image_url || '';
 	}
 
 	function loadPreferences() {
@@ -154,77 +148,13 @@
 		setTimeout(() => success = '', 3000);
 	}
 
-	function handleFileSelect(event: Event) {
-		const target = event.target as HTMLInputElement;
-		const file = target.files?.[0];
-
-		if (file) {
-			if (!file.type.startsWith('image/')) {
-				error = 'Please select a valid image file';
-				return;
-			}
-
-			if (file.size > 5 * 1024 * 1024) {
-				error = 'Image must be less than 5MB';
-				return;
-			}
-
-			selectedFile = file;
-			previewUrl = URL.createObjectURL(file);
-			error = '';
+	function handleImageUploadSuccess(url: string) {
+		profileImageUrl = url;
+		if ($profile) {
+			$profile = { ...$profile, profile_image_url: url };
 		}
-	}
-
-	async function handleUploadImage() {
-		if (!$user || !selectedFile) return;
-
-		if ($profile?.membership_tier === 'free') {
-			error = 'Profile pictures are only available for Mid and Big members. Upgrade to unlock!';
-			return;
-		}
-
-		uploadingImage = true;
-		error = '';
-		success = '';
-
-		try {
-			const fileExt = selectedFile.name.split('.').pop();
-			const fileName = `${$user.id}-${Date.now()}.${fileExt}`;
-			const filePath = `profile-pictures/${fileName}`;
-
-			const { error: uploadError } = await supabase.storage
-				.from('avatars')
-				.upload(filePath, selectedFile, {
-					cacheControl: '3600',
-					upsert: true
-				});
-
-			if (uploadError) throw uploadError;
-
-			const { data: { publicUrl } } = supabase.storage
-				.from('avatars')
-				.getPublicUrl(filePath);
-
-			profilePictureUrl = publicUrl;
-
-			const { error: updateError } = await supabase
-				.from('profiles')
-				.update({ profile_picture_url: publicUrl })
-				.eq('id', $user.id);
-
-			if (updateError) throw updateError;
-
-			if ($profile) {
-				$profile = { ...$profile, profile_picture_url: publicUrl };
-			}
-
-			success = 'Profile picture updated successfully!';
-			selectedFile = null;
-		} catch (e: any) {
-			error = e.message || 'Failed to upload image';
-		} finally {
-			uploadingImage = false;
-		}
+		success = 'Profile picture updated successfully!';
+		setTimeout(() => success = '', 3000);
 	}
 
 	async function handleSaveProfile() {
@@ -535,63 +465,18 @@
 						Profile Picture
 					</h2>
 
-					{#if $profile?.membership_tier === 'free'}
-						<div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-400 text-yellow-700 dark:text-yellow-400 px-4 py-3 rounded mb-4">
-							<p class="font-bold mb-1">Premium Feature</p>
-							<p class="text-sm">
-								Profile pictures are only available for Mid and Big members.
-								<a href="/subscribe" class="underline hover:no-underline">Upgrade now!</a>
-							</p>
-						</div>
-					{/if}
+					<div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-400 text-blue-700 dark:text-blue-400 px-4 py-3 rounded mb-4">
+						<p class="font-bold mb-1">Free for Everyone!</p>
+						<p class="text-sm">
+							All users can now upload profile pictures, hosted on our super-fast CDN at cdn.blueballs.lol
+						</p>
+					</div>
 
-					<div class="flex flex-col md:flex-row gap-6 items-start">
-						<div class="flex-shrink-0">
-							{#if previewUrl}
-								<img
-									src={previewUrl}
-									alt="Profile preview"
-									class="w-32 h-32 rounded-full object-cover border-4 border-primary"
-								/>
-							{:else}
-								<div class="w-32 h-32 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-									<Image size={48} class="text-gray-400" />
-								</div>
-							{/if}
-						</div>
-
-						<div class="flex-1">
-							<input
-								type="file"
-								bind:this={fileInput}
-								on:change={handleFileSelect}
-								accept="image/*"
-								class="hidden"
-								disabled={$profile?.membership_tier === 'free'}
-							/>
-
-							<button
-								on:click={() => fileInput?.click()}
-								class="btn-primary mb-2"
-								disabled={$profile?.membership_tier === 'free'}
-							>
-								<Upload size={18} class="inline" /> Choose Image
-							</button>
-
-							{#if selectedFile}
-								<button
-									on:click={handleUploadImage}
-									class="btn-primary bg-green-500 hover:bg-green-600 ml-2"
-									disabled={uploadingImage}
-								>
-									{uploadingImage ? 'Uploading...' : 'Upload'}
-								</button>
-							{/if}
-
-							<p class="text-sm dark:text-gray-300 mt-2">
-								Recommended: Square image, at least 200x200px, max 5MB
-							</p>
-						</div>
+					<div class="flex justify-center">
+						<ProfileImageUpload
+							currentImageUrl={profileImageUrl}
+							onUploadSuccess={handleImageUploadSuccess}
+						/>
 					</div>
 				</div>
 

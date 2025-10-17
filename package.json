@@ -24,12 +24,14 @@
     "vite": "^6.0.11"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.911.0",
     "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.47.10",
-    "stripe": "^17.6.0",
-    "lucide-svelte": "^0.469.0",
     "@vite-pwa/sveltekit": "^0.6.6",
-    "country-flag-icons": "^1.5.13"
+    "country-flag-icons": "^1.5.13",
+    "lucide-svelte": "^0.469.0",
+    "sharp": "^0.34.4",
+    "stripe": "^17.6.0"
   },
   "type": "module"
 }
