@@ -112,6 +112,11 @@
   }
 
   async function handleLogout() {
+    // Close all menus first to ensure clean UI state
+    rightMenuOpen = false;
+    leftMenuOpen = false;
+    notificationMenuOpen = false;
+
     // Show goodbye screen, which will handle sign out and redirect
     goto("/auth/goodbye");
   }

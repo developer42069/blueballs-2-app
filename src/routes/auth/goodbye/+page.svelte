@@ -4,24 +4,22 @@
 	import { supabase } from '$lib/supabase';
 	import { Heart, Sparkles } from 'lucide-svelte';
 
-	onMount(() => {
+	onMount(async () => {
 		// Sign out the user with proper scope
-		(async () => {
-			try {
-				// Sign out from all scopes (local, global, and others)
-				const { error } = await supabase.auth.signOut({ scope: 'global' });
+		try {
+			// Sign out from all scopes (local, global, and others)
+			const { error } = await supabase.auth.signOut({ scope: 'global' });
 
-				if (error) {
-					console.error('Logout error:', error);
-				}
-
-				// Clear any cached session data
-				localStorage.clear();
-				sessionStorage.clear();
-			} catch (e) {
-				console.error('Logout failed:', e);
+			if (error) {
+				console.error('Logout error:', error);
 			}
-		})();
+
+			// Clear any cached session data
+			localStorage.clear();
+			sessionStorage.clear();
+		} catch (e) {
+			console.error('Logout failed:', e);
+		}
 
 		// Redirect to homepage after 3 seconds with full page reload
 		// This ensures all cached state and data is completely cleared
