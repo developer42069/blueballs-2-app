@@ -1,7 +1,8 @@
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { uploadToR2, deleteFromR2, generateProfileImageKey, extractKeyFromUrl } from '$lib/r2';
-import { supabase } from '$lib/supabase';
+import { createClient } from '@supabase/supabase-js';
+import { PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY } from '$env/static/public';
 
 // Maximum file size: 5MB
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
@@ -9,16 +10,29 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024;
 // Allowed image types
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
 
-export const POST: RequestHandler = async ({ request, cookies }) => {
+export const POST: RequestHandler = async ({ request }) => {
 	try {
-		// Get the session from cookies
-		const sessionCookie = cookies.get('sb-access-token');
-		if (!sessionCookie) {
+		// Get the authorization header
+		const authHeader = request.headers.get('authorization');
+		if (!authHeader) {
 			throw error(401, 'Unauthorized - Please log in');
 		}
 
+		// Create a Supabase client with the user's token
+		const supabase = createClient(
+			PUBLIC_SUPABASE_URL,
+			PUBLIC_SUPABASE_ANON_KEY,
+			{
+				global: {
+					headers: {
+						Authorization: authHeader
+					}
+				}
+			}
+		);
+
 		// Verify the session and get user
-		const { data: { user }, error: authError } = await supabase.auth.getUser(sessionCookie);
+		const { data: { user }, error: authError } = await supabase.auth.getUser();
 
 		if (authError || !user) {
 			throw error(401, 'Unauthorized - Invalid session');

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { Upload, User, Loader2 } from 'lucide-svelte';
 	import { user } from '$lib/stores/auth';
+	import { supabase } from '$lib/supabase';
 
 	export let currentImageUrl: string | null = null;
 	export let onUploadSuccess: (url: string) => void = () => {};
@@ -112,15 +113,23 @@
 		error = '';
 
 		try {
-			// Note: We're using cookie-based authentication, so no need to set Authorization header
-			// The server will automatically read the session from the sb-access-token cookie
+			// Get the current session token for Authorization header
+			const session = await supabase.auth.getSession();
+			const token = session.data.session?.access_token;
+
+			if (!token) {
+				throw new Error('No active session. Please log in again.');
+			}
+
 			const formData = new FormData();
 			formData.append('image', file);
 
 			const response = await fetch('/api/upload-profile-image', {
 				method: 'POST',
-				body: formData,
-				credentials: 'include' // Important: ensures cookies are sent with the request
+				headers: {
+					'Authorization': `Bearer ${token}`
+				},
+				body: formData
 			});
 
 			const data = await response.json();
