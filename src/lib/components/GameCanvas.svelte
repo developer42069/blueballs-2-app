@@ -24,6 +24,7 @@
 	let fullscreenContainer: HTMLDivElement;
 	let demoMode = true; // Start in demo mode
 	let demoAnimationId: number;
+	let handleInput: () => Promise<void>; // Declare here to make it accessible
 
 	// Fixed internal resolution for consistent gameplay across all devices
 	const GAME_WIDTH = 800;
@@ -110,7 +111,7 @@
 		startDemoMode();
 
 		// Input handlers
-		const handleInput = async () => {
+		handleInput = async () => {
 			// Stop demo mode when user interacts
 			if (demoMode) {
 				stopDemoMode();
@@ -878,8 +879,7 @@
 			{#if demoMode}
 				<div class="absolute inset-0 flex items-center justify-center pointer-events-none">
 					<div class="tap-to-play-overlay animate-pulse-slow">
-						<div class="tap-to-play-text">TAP TO PLAY</div>
-						<div class="tap-to-play-subtitle">Watch the demo or start playing!</div>
+						<div class="tap-to-play-text">TAP TO START PLAYING</div>
 					</div>
 				</div>
 			{/if}
