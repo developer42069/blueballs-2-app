@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { Search, X } from 'lucide-svelte';
+	import { Search, X, ChevronDown } from 'lucide-svelte';
+	import { onMount, onDestroy } from 'svelte';
 
 	export let value: string = '';
 	export let onSelect: (country: string) => void = () => {};
@@ -7,6 +8,7 @@
 	let searchQuery = '';
 	let isOpen = false;
 	let dropdownRef: HTMLDivElement;
+	let searchInputRef: HTMLInputElement;
 
 	// Complete list of all countries in the world
 	const allCountries = [
@@ -49,6 +51,16 @@
 		country.toLowerCase().includes(searchQuery.toLowerCase())
 	);
 
+	function toggleDropdown() {
+		isOpen = !isOpen;
+		if (isOpen) {
+			// Focus search input after dropdown opens
+			setTimeout(() => searchInputRef?.focus(), 10);
+		} else {
+			searchQuery = '';
+		}
+	}
+
 	function selectCountry(country: string) {
 		value = country;
 		onSelect(country);
@@ -56,7 +68,8 @@
 		searchQuery = '';
 	}
 
-	function clearSelection() {
+	function clearSelection(event: Event) {
+		event.stopPropagation();
 		value = '';
 		onSelect('');
 		searchQuery = '';
@@ -69,65 +82,70 @@
 		}
 	}
 
-	$: if (typeof window !== 'undefined') {
-		if (isOpen) {
-			window.addEventListener('click', handleClickOutside);
-		} else {
-			window.removeEventListener('click', handleClickOutside);
-		}
-	}
+	onMount(() => {
+		document.addEventListener('click', handleClickOutside, true);
+	});
+
+	onDestroy(() => {
+		document.removeEventListener('click', handleClickOutside, true);
+	});
 </script>
 
 <div class="country-select-container" bind:this={dropdownRef}>
-	<!-- Selected Country Display / Search Input -->
-	{#if !isOpen}
-		<button
-			type="button"
-			on:click={() => isOpen = true}
-			class="country-select-button"
-		>
-			<span class:text-gray-400={!value}>{value || 'Select a country'}</span>
+	<!-- Trigger Button -->
+	<button
+		type="button"
+		on:click={toggleDropdown}
+		class="country-select-button"
+	>
+		<span class:placeholder={!value}>{value || 'Select a country'}</span>
+		<div class="button-icons">
 			{#if value}
 				<button
 					type="button"
-					on:click|stopPropagation={clearSelection}
+					on:click={clearSelection}
 					class="clear-button"
 					aria-label="Clear selection"
 				>
 					<X size={18} />
 				</button>
 			{/if}
-		</button>
-	{:else}
-		<div class="search-input-container">
-			<Search size={20} class="search-icon" />
-			<input
-				type="text"
-				bind:value={searchQuery}
-				placeholder="Search countries..."
-				class="search-input"
-				autofocus
-			/>
+			<ChevronDown size={20} class={isOpen ? 'chevron rotated' : 'chevron'} />
 		</div>
-	{/if}
+	</button>
 
-	<!-- Dropdown List -->
+	<!-- Dropdown -->
 	{#if isOpen}
-		<div class="dropdown-list">
-			{#if filteredCountries.length === 0}
-				<div class="no-results">No countries found</div>
-			{:else}
-				{#each filteredCountries as country}
-					<button
-						type="button"
-						on:click={() => selectCountry(country)}
-						class="country-option"
-						class:selected={value === country}
-					>
-						{country}
-					</button>
-				{/each}
-			{/if}
+		<div class="dropdown-panel">
+			<!-- Search Input -->
+			<div class="search-container">
+				<Search size={18} class="search-icon" />
+				<input
+					bind:this={searchInputRef}
+					type="text"
+					bind:value={searchQuery}
+					placeholder="Type to search..."
+					class="search-input"
+				/>
+			</div>
+
+			<!-- Country List -->
+			<div class="dropdown-list">
+				{#if filteredCountries.length === 0}
+					<div class="no-results">No countries found</div>
+				{:else}
+					{#each filteredCountries as country}
+						<button
+							type="button"
+							on:click={() => selectCountry(country)}
+							class="country-option"
+							class:selected={value === country}
+						>
+							{country}
+						</button>
+					{/each}
+				{/if}
+			</div>
 		</div>
 	{/if}
 </div>
@@ -140,8 +158,8 @@
 
 	.country-select-button {
 		width: 100%;
-		padding: 0.5rem 1rem;
-		border: 1px solid #d1d5db;
+		padding: 0.75rem 1rem;
+		border: 2px solid #4ec0ca;
 		border-radius: 0.5rem;
 		background: white;
 		text-align: left;
@@ -154,19 +172,24 @@
 	}
 
 	:global(.dark) .country-select-button {
-		background: #1f2937;
-		border-color: #4b5563;
+		background: #2d2d2d;
+		border-color: #4ec0ca;
 		color: white;
 	}
 
 	.country-select-button:hover {
 		border-color: #E40078;
+		box-shadow: 0 0 0 2px rgba(228, 0, 120, 0.1);
 	}
 
-	.country-select-button:focus {
-		outline: none;
-		ring: 2px;
-		ring-color: #E40078;
+	.placeholder {
+		color: #9ca3af;
+	}
+
+	.button-icons {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
 	}
 
 	.clear-button {
@@ -177,25 +200,62 @@
 		cursor: pointer;
 		color: #6b7280;
 		transition: all 0.2s;
+		display: flex;
+		align-items: center;
+		justify-content: center;
 	}
 
 	.clear-button:hover {
-		background: #f3f4f6;
+		background: rgba(228, 0, 120, 0.1);
 		color: #E40078;
 	}
 
 	:global(.dark) .clear-button:hover {
-		background: #374151;
+		background: rgba(228, 0, 120, 0.2);
+		color: #E40078;
 	}
 
-	.search-input-container {
+	.chevron {
+		color: #6b7280;
+		transition: transform 0.2s;
+	}
+
+	.chevron.rotated {
+		transform: rotate(180deg);
+	}
+
+	.dropdown-panel {
+		position: absolute;
+		top: calc(100% + 0.5rem);
+		left: 0;
+		right: 0;
+		background: white;
+		border: 2px solid #4ec0ca;
+		border-radius: 0.5rem;
+		box-shadow: 0 10px 15px -3px rgba(78, 192, 202, 0.2), 0 4px 6px -2px rgba(78, 192, 202, 0.1);
+		z-index: 1000;
+		overflow: hidden;
+	}
+
+	:global(.dark) .dropdown-panel {
+		background: #2d2d2d;
+		border-color: #4ec0ca;
+		box-shadow: 0 10px 15px -3px rgba(78, 192, 202, 0.3), 0 4px 6px -2px rgba(78, 192, 202, 0.2);
+	}
+
+	.search-container {
 		position: relative;
-		width: 100%;
+		padding: 0.75rem;
+		border-bottom: 1px solid #4ec0ca;
+	}
+
+	:global(.dark) .search-container {
+		border-bottom-color: #4ec0ca;
 	}
 
 	.search-icon {
 		position: absolute;
-		left: 1rem;
+		left: 1.25rem;
 		top: 50%;
 		transform: translateY(-50%);
 		color: #9ca3af;
@@ -204,36 +264,33 @@
 
 	.search-input {
 		width: 100%;
-		padding: 0.5rem 1rem 0.5rem 3rem;
-		border: 2px solid #E40078;
-		border-radius: 0.5rem;
+		padding: 0.5rem 0.75rem 0.5rem 2.5rem;
+		border: 1px solid #4ec0ca;
+		border-radius: 0.375rem;
 		background: white;
-		font-size: 1rem;
+		font-size: 0.875rem;
 		outline: none;
+		transition: border-color 0.2s, box-shadow 0.2s;
+	}
+
+	.search-input:focus {
+		border-color: #E40078;
+		box-shadow: 0 0 0 2px rgba(228, 0, 120, 0.1);
 	}
 
 	:global(.dark) .search-input {
-		background: #1f2937;
+		background: #1a1a1a;
+		border-color: #4ec0ca;
 		color: white;
 	}
 
-	.dropdown-list {
-		position: absolute;
-		top: calc(100% + 0.25rem);
-		left: 0;
-		right: 0;
-		max-height: 300px;
-		overflow-y: auto;
-		background: white;
-		border: 1px solid #d1d5db;
-		border-radius: 0.5rem;
-		box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-		z-index: 50;
+	:global(.dark) .search-input:focus {
+		box-shadow: 0 0 0 2px rgba(228, 0, 120, 0.2);
 	}
 
-	:global(.dark) .dropdown-list {
-		background: #1f2937;
-		border-color: #4b5563;
+	.dropdown-list {
+		max-height: 300px;
+		overflow-y: auto;
 	}
 
 	.country-option {
@@ -243,33 +300,36 @@
 		border: none;
 		background: transparent;
 		cursor: pointer;
-		transition: background 0.2s;
-		font-size: 1rem;
+		transition: background 0.15s;
+		font-size: 0.875rem;
 		color: inherit;
+		display: block;
 	}
 
 	.country-option:hover {
-		background: #f3f4f6;
+		background: rgba(78, 192, 202, 0.1);
 	}
 
 	:global(.dark) .country-option:hover {
-		background: #374151;
+		background: rgba(78, 192, 202, 0.15);
 	}
 
 	.country-option.selected {
-		background: #fce7f3;
+		background: rgba(228, 0, 120, 0.15);
 		color: #E40078;
 		font-weight: 600;
 	}
 
 	:global(.dark) .country-option.selected {
-		background: rgba(228, 0, 120, 0.2);
+		background: rgba(228, 0, 120, 0.25);
+		color: #E40078;
 	}
 
 	.no-results {
 		padding: 2rem 1rem;
 		text-align: center;
 		color: #9ca3af;
+		font-size: 0.875rem;
 	}
 
 	/* Custom scrollbar */
@@ -278,20 +338,27 @@
 	}
 
 	.dropdown-list::-webkit-scrollbar-track {
-		background: #f1f1f1;
-		border-radius: 0 0.5rem 0.5rem 0;
+		background: rgba(78, 192, 202, 0.1);
 	}
 
 	:global(.dark) .dropdown-list::-webkit-scrollbar-track {
-		background: #374151;
+		background: rgba(78, 192, 202, 0.1);
 	}
 
 	.dropdown-list::-webkit-scrollbar-thumb {
-		background: #E40078;
+		background: #4ec0ca;
 		border-radius: 4px;
 	}
 
 	.dropdown-list::-webkit-scrollbar-thumb:hover {
-		background: #c0006a;
+		background: #E40078;
+	}
+
+	:global(.dark) .dropdown-list::-webkit-scrollbar-thumb {
+		background: #4ec0ca;
+	}
+
+	:global(.dark) .dropdown-list::-webkit-scrollbar-thumb:hover {
+		background: #E40078;
 	}
 </style>
