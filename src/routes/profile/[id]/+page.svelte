@@ -6,6 +6,7 @@
 	import { RANK_NAMES, MEMBERSHIP_TIERS } from '$lib/utils/gameConfig';
 	import { Trophy, Globe, Star, UserPlus, UserX, ExternalLink } from 'lucide-svelte';
 	import { analytics } from '$lib/analytics';
+	import { goto } from '$app/navigation';
 
 	let profileData: Profile | null = null;
 	let recentScores: GameScore[] = [];
@@ -15,6 +16,14 @@
 
 	$: profileId = $page.params.id;
 	$: isOwnProfile = $user?.id === profileId;
+
+	// When viewing own profile, sync with the auth store
+	$: if (isOwnProfile && $currentUserProfile) {
+		// Update profileData when currentUserProfile changes (e.g., profile picture update)
+		if (profileData && profileData.id === $currentUserProfile.id) {
+			profileData = { ...profileData, ...$currentUserProfile };
+		}
+	}
 
 	onMount(async () => {
 		await loadProfile();
@@ -128,16 +137,42 @@
 				<div class="flex flex-col md:flex-row items-center md:items-start gap-6">
 					<!-- Profile Picture -->
 					<div class="flex-shrink-0">
-						{#if profileData.profile_picture_url}
-							<img
-								src={profileData.profile_picture_url}
-								alt={profileData.username}
-								class="w-32 h-32 rounded-full border-4 border-primary dark:border-secondary object-cover"
-							/>
+						{#if isOwnProfile}
+							<!-- Clickable profile picture for own profile -->
+							<button
+								on:click={() => goto('/settings')}
+								class="relative group cursor-pointer"
+								title="Click to change profile picture"
+							>
+								{#if profileData.profile_picture_url}
+									<img
+										src={profileData.profile_picture_url}
+										alt={profileData.username}
+										class="w-32 h-32 rounded-full border-4 border-primary dark:border-secondary object-cover transition-opacity group-hover:opacity-75"
+									/>
+								{:else}
+									<div class="w-32 h-32 rounded-full border-4 border-primary dark:border-secondary bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white text-4xl font-bold transition-opacity group-hover:opacity-75">
+										{profileData.username.charAt(0).toUpperCase()}
+									</div>
+								{/if}
+								<!-- Hover overlay -->
+								<div class="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+									<span class="text-white text-sm font-semibold">Change Photo</span>
+								</div>
+							</button>
 						{:else}
-							<div class="w-32 h-32 rounded-full border-4 border-primary dark:border-secondary bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white text-4xl font-bold">
-								{profileData.username.charAt(0).toUpperCase()}
-							</div>
+							<!-- Non-clickable for other profiles -->
+							{#if profileData.profile_picture_url}
+								<img
+									src={profileData.profile_picture_url}
+									alt={profileData.username}
+									class="w-32 h-32 rounded-full border-4 border-primary dark:border-secondary object-cover"
+								/>
+							{:else}
+								<div class="w-32 h-32 rounded-full border-4 border-primary dark:border-secondary bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white text-4xl font-bold">
+									{profileData.username.charAt(0).toUpperCase()}
+								</div>
+							{/if}
 						{/if}
 					</div>
 

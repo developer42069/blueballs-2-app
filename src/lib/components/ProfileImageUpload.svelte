@@ -79,9 +79,11 @@
 		}
 	}
 
-	function onCropComplete(e: CustomEvent) {
-		console.log('Crop complete event fired:', e.detail);
-		croppedAreaPixels = e.detail.pixels;
+	function onCropComplete(e: any) {
+		console.log('Crop complete event fired:', e);
+		// When using oncropcomplete property, the event object is passed directly
+		// It contains both 'percent' and 'pixels' properties
+		croppedAreaPixels = e.pixels;
 		console.log('Updated croppedAreaPixels:', croppedAreaPixels);
 	}
 

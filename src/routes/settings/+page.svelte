@@ -75,7 +75,7 @@
 		socialLink = $profile.social_link || '';
 		messageToWorld = $profile.message_to_world || '';
 		allowFriendRequests = $profile.allow_friend_requests;
-		profileImageUrl = $profile.profile_image_url || '';
+		profileImageUrl = $profile.profile_picture_url || '';
 	}
 
 	function loadPreferences() {
@@ -103,7 +103,8 @@
 	function handleImageUploadSuccess(url: string) {
 		profileImageUrl = url;
 		if ($profile) {
-			$profile = { ...$profile, profile_image_url: url };
+			// Update the profile store so all components react to the change
+			$profile = { ...$profile, profile_picture_url: url };
 		}
 		success = 'Profile picture updated successfully!';
 		setTimeout(() => success = '', 3000);
