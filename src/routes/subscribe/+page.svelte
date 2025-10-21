@@ -66,11 +66,12 @@
 			analytics.initiateCheckout(tier, value);
 
 			// Call your backend API to create Stripe checkout session
+			// Cookies are automatically sent with fetch requests
 			const response = await fetch('/api/stripe/create-checkout', {
 				method: 'POST',
+				credentials: 'same-origin',
 				headers: {
-					'Content-Type': 'application/json',
-					'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
+					'Content-Type': 'application/json'
 				},
 				body: JSON.stringify({
 					tier

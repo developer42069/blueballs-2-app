@@ -60,11 +60,12 @@
 				const { data: { session } } = await supabase.auth.getSession();
 				if (!session) return;
 
+				// Cookies are automatically sent with fetch requests
 				const response = await fetch('/api/lives/regen', {
 					method: 'POST',
+					credentials: 'same-origin',
 					headers: {
-						'Content-Type': 'application/json',
-						'Authorization': `Bearer ${session.access_token}`
+						'Content-Type': 'application/json'
 					}
 				});
 
@@ -187,17 +188,18 @@
 				// Deduct a life
 				const newLives = Math.max(0, $profile.lives - 1);
 
-				// Get the access token from Supabase session
+				// Check if user has an active session
 				const { data: { session } } = await supabase.auth.getSession();
 				if (!session) {
 					throw new Error('No active session');
 				}
 
+				// Cookies are automatically sent with fetch requests
 				const response = await fetch('/api/score', {
 					method: 'POST',
+					credentials: 'same-origin',
 					headers: {
-						'Content-Type': 'application/json',
-						'Authorization': `Bearer ${session.access_token}`
+						'Content-Type': 'application/json'
 					},
 					body: JSON.stringify({
 						score,

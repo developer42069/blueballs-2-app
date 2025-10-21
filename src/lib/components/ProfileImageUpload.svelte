@@ -58,9 +58,12 @@
 		crop = { x: 0, y: 0 };
 		zoom = 1;
 		rotation = 0;
+		croppedAreaPixels = null; // Reset this too
 
 		// Open cropper modal
 		cropperModal = true;
+
+		console.log('Cropper modal opened, waiting for cropcomplete event...');
 	}
 
 	function closeCropper() {
@@ -77,7 +80,9 @@
 	}
 
 	function onCropComplete(e: CustomEvent) {
+		console.log('Crop complete event fired:', e.detail);
 		croppedAreaPixels = e.detail.pixels;
+		console.log('Updated croppedAreaPixels:', croppedAreaPixels);
 	}
 
 	function adjustZoom(delta: number) {
@@ -160,19 +165,45 @@
 	}
 
 	async function handleCropAndUpload() {
-		if (!selectedFile || !originalImageUrl || !croppedAreaPixels) return;
+		console.log('handleCropAndUpload called');
+		console.log('selectedFile:', selectedFile);
+		console.log('originalImageUrl:', originalImageUrl);
+		console.log('croppedAreaPixels:', croppedAreaPixels);
+
+		if (!selectedFile) {
+			error = 'No file selected';
+			console.error('No file selected');
+			setTimeout(() => error = '', 3000);
+			return;
+		}
+
+		if (!originalImageUrl) {
+			error = 'No image URL available';
+			console.error('No image URL');
+			setTimeout(() => error = '', 3000);
+			return;
+		}
+
+		if (!croppedAreaPixels) {
+			error = 'Please wait for the cropper to load, then try again';
+			console.error('No cropped area pixels - cropper not ready');
+			setTimeout(() => error = '', 3000);
+			return;
+		}
 
 		uploading = true;
 		error = '';
 		success = '';
 
 		try {
+			console.log('Creating cropped image...');
 			// Create cropped image
 			const croppedBlob = await createCroppedImage(
 				originalImageUrl,
 				croppedAreaPixels,
 				rotation
 			);
+			console.log('Cropped blob created:', croppedBlob);
 
 			// Create file from blob
 			const croppedFile = new File([croppedBlob], selectedFile.name, {
@@ -363,7 +394,7 @@
 						bind:zoom
 						bind:rotation
 						aspect={1}
-						on:cropcomplete={onCropComplete}
+						oncropcomplete={onCropComplete}
 					/>
 				</div>
 

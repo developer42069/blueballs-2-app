@@ -1,40 +1,17 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { createClient } from '@supabase/supabase-js';
-import { PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY } from '$env/static/public';
 
-export const POST: RequestHandler = async ({ request }) => {
+export const POST: RequestHandler = async ({ request, locals }) => {
 	try {
-		// Get the authorization header
-		const authHeader = request.headers.get('authorization');
-		if (!authHeader) {
-			return json({ success: false, error: 'Unauthorized' }, { status: 401 });
-		}
+		// Get session from locals (set by hooks.server.ts)
+		const { session, user } = await locals.safeGetSession();
 
-		// Create a Supabase client with the user's token
-		const token = authHeader.replace('Bearer ', '');
-		const supabase = createClient(
-			PUBLIC_SUPABASE_URL,
-			PUBLIC_SUPABASE_ANON_KEY,
-			{
-				global: {
-					headers: {
-						Authorization: authHeader
-					}
-				}
-			}
-		);
-
-		// Get user from Supabase auth using the access token
-		const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-		if (authError || !user) {
-			console.error('Auth error:', authError);
+		if (!session || !user) {
 			return json({ success: false, error: 'Unauthorized' }, { status: 401 });
 		}
 
 		// Get current profile
-		const { data: profile, error: profileError } = await supabase
+		const { data: profile, error: profileError } = await locals.supabase
 			.from('profiles')
 			.select('*')
 			.eq('id', user.id)
@@ -66,7 +43,7 @@ export const POST: RequestHandler = async ({ request }) => {
 		const newLives = Math.min(profile.lives + livesGained, profile.max_lives);
 
 		// Update last regen time to now
-		const { data: updatedProfile, error: updateError } = await supabase
+		const { data: updatedProfile, error: updateError } = await locals.supabase
 			.from('profiles')
 			.update({
 				lives: newLives,
