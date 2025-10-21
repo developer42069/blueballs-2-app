@@ -1,7 +1,5 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { createClient } from '@supabase/supabase-js';
-import { PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY } from '$env/static/public';
 import Stripe from 'stripe';
 import { STRIPE_SECRET_KEY, STRIPE_PRICE_ID_MID, STRIPE_PRICE_ID_BIG } from '$env/static/private';
 
@@ -9,7 +7,7 @@ const stripe = new Stripe(STRIPE_SECRET_KEY, {
 	apiVersion: '2025-02-24.acacia'
 });
 
-export const POST: RequestHandler = async ({ request, url }) => {
+export const POST: RequestHandler = async ({ request, url, locals }) => {
 	try {
 		const { tier } = await request.json();
 
@@ -18,34 +16,15 @@ export const POST: RequestHandler = async ({ request, url }) => {
 			return json({ success: false, error: 'Invalid tier' }, { status: 400 });
 		}
 
-		// Get the authorization header
-		const authHeader = request.headers.get('authorization');
-		if (!authHeader) {
-			return json({ success: false, error: 'Unauthorized' }, { status: 401 });
-		}
+		// Get session from locals (set by hooks.server.ts)
+		const { session: userSession, user } = await locals.safeGetSession();
 
-		// Create a Supabase client with the user's token
-		const supabase = createClient(
-			PUBLIC_SUPABASE_URL,
-			PUBLIC_SUPABASE_ANON_KEY,
-			{
-				global: {
-					headers: {
-						Authorization: authHeader
-					}
-				}
-			}
-		);
-
-		// Get user from Supabase auth
-		const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-		if (authError || !user) {
+		if (!userSession || !user) {
 			return json({ success: false, error: 'Unauthorized' }, { status: 401 });
 		}
 
 		// Get current profile
-		const { data: profile, error: profileError } = await supabase
+		const { data: profile, error: profileError } = await locals.supabase
 			.from('profiles')
 			.select('*')
 			.eq('id', user.id)
@@ -70,7 +49,7 @@ export const POST: RequestHandler = async ({ request, url }) => {
 			customerId = customer.id;
 
 			// Update profile with customer ID
-			await supabase
+			await locals.supabase
 				.from('profiles')
 				.update({ stripe_customer_id: customerId })
 				.eq('id', user.id);
@@ -83,7 +62,7 @@ export const POST: RequestHandler = async ({ request, url }) => {
 		};
 
 		// Create checkout session
-		const session = await stripe.checkout.sessions.create({
+		const checkoutSession = await stripe.checkout.sessions.create({
 			customer: customerId,
 			mode: 'subscription',
 			line_items: [
@@ -102,8 +81,8 @@ export const POST: RequestHandler = async ({ request, url }) => {
 
 		return json({
 			success: true,
-			sessionId: session.id,
-			url: session.url
+			sessionId: checkoutSession.id,
+			url: checkoutSession.url
 		});
 	} catch (error) {
 		console.error('Stripe checkout error:', error);
