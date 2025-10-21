@@ -23,7 +23,7 @@ const r2Client = new S3Client({
  * Automatically creates the folder structure if it doesn't exist
  */
 export async function uploadToR2(
-	file: Buffer,
+	file: Uint8Array | Buffer,
 	key: string,
 	contentType: string
 ): Promise<string> {

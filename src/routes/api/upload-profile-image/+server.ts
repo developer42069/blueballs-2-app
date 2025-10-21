@@ -1,8 +1,6 @@
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { uploadToR2, deleteFromR2, generateProfileImageKey, extractKeyFromUrl } from '$lib/r2';
-import { createClient } from '@supabase/supabase-js';
-import { PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY } from '$env/static/public';
 
 // Maximum file size: 5MB
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
@@ -10,32 +8,13 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024;
 // Allowed image types
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
 
-export const POST: RequestHandler = async ({ request }) => {
+export const POST: RequestHandler = async ({ request, locals }) => {
 	try {
-		// Get the authorization header
-		const authHeader = request.headers.get('authorization');
-		if (!authHeader) {
+		// Get session from locals (set by hooks.server.ts)
+		const { session, user } = await locals.safeGetSession();
+
+		if (!session || !user) {
 			throw error(401, 'Unauthorized - Please log in');
-		}
-
-		// Create a Supabase client with the user's token
-		const supabase = createClient(
-			PUBLIC_SUPABASE_URL,
-			PUBLIC_SUPABASE_ANON_KEY,
-			{
-				global: {
-					headers: {
-						Authorization: authHeader
-					}
-				}
-			}
-		);
-
-		// Verify the session and get user
-		const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-		if (authError || !user) {
-			throw error(401, 'Unauthorized - Invalid session');
 		}
 
 		// Parse the multipart form data
@@ -56,9 +35,9 @@ export const POST: RequestHandler = async ({ request }) => {
 			throw error(400, `File too large. Maximum size: ${MAX_FILE_SIZE / 1024 / 1024}MB`);
 		}
 
-		// Convert file to buffer (no server-side processing for Cloudflare Workers compatibility)
+		// Convert file to Uint8Array (edge runtime compatible)
 		const arrayBuffer = await file.arrayBuffer();
-		const buffer = Buffer.from(arrayBuffer);
+		const uint8Array = new Uint8Array(arrayBuffer);
 
 		// Get file extension from original file type
 		const extension = file.type.split('/')[1] || 'jpg';
@@ -67,10 +46,10 @@ export const POST: RequestHandler = async ({ request }) => {
 		const key = generateProfileImageKey(user.id, extension);
 
 		// Upload to R2 (image is already resized/optimized on client side)
-		const imageUrl = await uploadToR2(buffer, key, file.type);
+		const imageUrl = await uploadToR2(uint8Array, key, file.type);
 
 		// Get the user's current profile image to delete old one
-		const { data: profile } = await supabase
+		const { data: profile } = await locals.supabase
 			.from('profiles')
 			.select('profile_image_url')
 			.eq('id', user.id)
@@ -90,7 +69,7 @@ export const POST: RequestHandler = async ({ request }) => {
 		}
 
 		// Update the user's profile with the new image URL
-		const { error: updateError } = await supabase
+		const { error: updateError } = await locals.supabase
 			.from('profiles')
 			.update({
 				profile_image_url: imageUrl,

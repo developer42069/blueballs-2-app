@@ -30,7 +30,8 @@
     "@vite-pwa/sveltekit": "^0.6.6",
     "country-flag-icons": "^1.5.13",
     "lucide-svelte": "^0.469.0",
-    "stripe": "^17.6.0"
+    "stripe": "^17.6.0",
+    "svelte-easy-crop": "^5.0.0"
   },
   "type": "module"
 }
