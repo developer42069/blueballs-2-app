@@ -1,11 +1,13 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import { user, profile } from '$lib/stores/auth';
 	import { goto } from '$app/navigation';
 	import { supabase } from '$lib/supabase';
 	import { MEMBERSHIP_TIERS } from '$lib/utils/gameConfig';
 	import { Heart, Zap, Star, CheckCircle, X, Crown, Image, MessageCircle, XCircle } from 'lucide-svelte';
 	import { analytics } from '$lib/analytics';
+	import StripeEmbeddedCheckout from '$lib/components/StripeEmbeddedCheckout.svelte';
+	import { PUBLIC_SUPABASE_URL } from '$env/static/public';
 
 	let loading = true;
 	let processingCheckout = false;
@@ -13,6 +15,13 @@
 	let success = '';
 	let cancelLoading = false;
 	let changingSubscription = false;
+
+	// Embedded checkout state
+	let showCheckout = false;
+	let checkoutClientSecret = '';
+	let checkoutPublishableKey = '';
+	let checkoutIsTestMode = false;
+	let selectedTier: 'mid' | 'big' | null = null;
 
 	onMount(async () => {
 		// Wait a bit for auth to load before redirecting
@@ -28,21 +37,43 @@
 
 		loading = false;
 
-		// Reset processing state when user returns to the page (e.g., from Stripe back button)
-		// This ensures the UI is not stuck in a loading state
-		const handleVisibilityChange = () => {
+		// Reset states and refresh session when user returns (e.g., from back button)
+		const handleVisibilityChange = async () => {
 			if (document.visibilityState === 'visible') {
+				// Reset checkout states
 				processingCheckout = false;
 				changingSubscription = false;
+				showCheckout = false;
+				checkoutClientSecret = '';
+				selectedTier = null;
+
+				// Refresh auth session to ensure it's valid
+				const { data } = await supabase.auth.refreshSession();
+				if (data.session) {
+					// Session is valid, reload profile
+					const { data: profileData } = await supabase
+						.from('profiles')
+						.select('*')
+						.eq('id', $user.id)
+						.single();
+
+					if (profileData) {
+						$profile = profileData;
+					}
+				}
 			}
 		};
 
 		document.addEventListener('visibilitychange', handleVisibilityChange);
 
-		// Also reset when page gains focus (more reliable for some browsers)
-		const handleFocus = () => {
+		// Also handle focus events
+		const handleFocus = async () => {
 			processingCheckout = false;
 			changingSubscription = false;
+			showCheckout = false;
+
+			// Refresh session
+			await supabase.auth.refreshSession();
 		};
 
 		window.addEventListener('focus', handleFocus);
@@ -54,19 +85,37 @@
 		};
 	});
 
+	onDestroy(() => {
+		// Clean up any pending states
+		showCheckout = false;
+		checkoutClientSecret = '';
+	});
+
 	async function handleSubscribe(tier: 'mid' | 'big') {
 		if (!$user) return;
 
 		processingCheckout = true;
 		error = '';
+		selectedTier = tier;
 
 		try {
 			// Track checkout initiation
 			const value = tier === 'mid' ? 2 : 10;
 			analytics.initiateCheckout(tier, value);
 
-			// Call your backend API to create Stripe checkout session
-			// Cookies are automatically sent with fetch requests
+			// Get the publishable key from env or fetch it
+			// We need to know if we're in test mode to use the right key
+			const settingsResponse = await fetch('/api/stripe/get-publishable-key', {
+				credentials: 'same-origin'
+			});
+
+			if (!settingsResponse.ok) {
+				throw new Error('Failed to get Stripe configuration');
+			}
+
+			const { publishableKey, isTestMode } = await settingsResponse.json();
+
+			// Call API to create embedded checkout session
 			const response = await fetch('/api/stripe/create-checkout', {
 				method: 'POST',
 				credentials: 'same-origin',
@@ -74,7 +123,8 @@
 					'Content-Type': 'application/json'
 				},
 				body: JSON.stringify({
-					tier
+					tier,
+					useEmbedded: true
 				})
 			});
 
@@ -83,14 +133,26 @@
 				throw new Error(data.error || 'Failed to create checkout session');
 			}
 
-			const { url } = await response.json();
+			const { clientSecret, isTestMode: testMode } = await response.json();
 
-			// Redirect to Stripe Checkout
-			window.location.href = url;
+			// Show embedded checkout
+			checkoutClientSecret = clientSecret;
+			checkoutPublishableKey = publishableKey;
+			checkoutIsTestMode = testMode;
+			showCheckout = true;
+			processingCheckout = false;
 		} catch (e: any) {
 			error = e.message || 'Failed to start checkout process';
 			processingCheckout = false;
+			showCheckout = false;
 		}
+	}
+
+	function closeCheckout() {
+		showCheckout = false;
+		checkoutClientSecret = '';
+		selectedTier = null;
+		error = '';
 	}
 
 	async function handleChangeSubscription(newTier: 'mid' | 'big') {
@@ -503,3 +565,128 @@
 		</div>
 	</div>
 {/if}
+
+<!-- Embedded Checkout Modal -->
+{#if showCheckout && checkoutClientSecret}
+	<!-- svelte-ignore a11y-click-events-have-key-events -->
+	<!-- svelte-ignore a11y-no-static-element-interactions -->
+	<div class="modal-backdrop" on:click={closeCheckout}>
+		<!-- svelte-ignore a11y-click-events-have-key-events -->
+		<!-- svelte-ignore a11y-no-static-element-interactions -->
+		<div class="modal-content" on:click|stopPropagation>
+			<div class="modal-header">
+				<h2 class="text-2xl font-bold">
+					Complete Your Subscription
+				</h2>
+				<button type="button" class="close-button" on:click={closeCheckout}>
+					<X size={24} />
+				</button>
+			</div>
+
+			<div class="modal-body">
+				<StripeEmbeddedCheckout
+					clientSecret={checkoutClientSecret}
+					publishableKey={checkoutPublishableKey}
+					isTestMode={checkoutIsTestMode}
+				/>
+			</div>
+		</div>
+	</div>
+{/if}
+
+<style>
+	/* Modal styles */
+	.modal-backdrop {
+		position: fixed;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		background: rgba(0, 0, 0, 0.8);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		z-index: 9999;
+		padding: 1rem;
+		animation: fadeIn 0.2s ease;
+	}
+
+	@keyframes fadeIn {
+		from {
+			opacity: 0;
+		}
+		to {
+			opacity: 1;
+		}
+	}
+
+	.modal-content {
+		background: white;
+		border-radius: 1rem;
+		max-width: 700px;
+		width: 100%;
+		max-height: 90vh;
+		overflow-y: auto;
+		box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+		animation: slideUp 0.3s ease;
+	}
+
+	:global(.dark) .modal-content {
+		background: #1f2937;
+	}
+
+	@keyframes slideUp {
+		from {
+			transform: translateY(20px);
+			opacity: 0;
+		}
+		to {
+			transform: translateY(0);
+			opacity: 1;
+		}
+	}
+
+	.modal-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 1.5rem;
+		border-bottom: 1px solid #e5e7eb;
+	}
+
+	:global(.dark) .modal-header {
+		border-bottom-color: #374151;
+	}
+
+	.modal-header h2 {
+		color: #111827;
+	}
+
+	:global(.dark) .modal-header h2 {
+		color: #f9fafb;
+	}
+
+	.close-button {
+		background: none;
+		border: none;
+		cursor: pointer;
+		padding: 0.5rem;
+		border-radius: 0.5rem;
+		color: #6b7280;
+		transition: all 0.2s ease;
+	}
+
+	.close-button:hover {
+		background: #f3f4f6;
+		color: #111827;
+	}
+
+	:global(.dark) .close-button:hover {
+		background: #374151;
+		color: #f9fafb;
+	}
+
+	.modal-body {
+		padding: 1.5rem;
+	}
+</style>

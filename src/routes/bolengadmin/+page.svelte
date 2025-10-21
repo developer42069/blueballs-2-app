@@ -24,10 +24,14 @@
 	} from 'lucide-svelte';
 
 	let loading = true;
-	let activeTab: 'dashboard' | 'users' | 'affiliates' | 'settings' | 'email' | 'ads' | 'game' = 'dashboard';
+	let activeTab: 'dashboard' | 'users' | 'affiliates' | 'settings' | 'email' | 'ads' | 'game' | 'stripe' = 'dashboard';
 	let error = '';
 	let success = '';
 	let actionLoading = false;
+
+	// Stripe test mode
+	let stripeTestMode = false;
+	let loadingStripeMode = false;
 
 	// Dashboard stats
 	let totalUsers = 0;
@@ -281,7 +285,7 @@
 
 	async function loadSystemSettings() {
 		try {
-			const { data, error: fetchError } = await supabase
+			const { data, error: fetchError} = await supabase
 				.from('system_settings')
 				.select('*')
 				.order('key');
@@ -295,6 +299,55 @@
 			});
 		} catch (e: any) {
 			error = 'Failed to load system settings';
+		}
+	}
+
+	async function loadStripeSettings() {
+		try {
+			const { data } = await supabase
+				.from('system_settings')
+				.select('value')
+				.eq('key', 'stripe_test_mode')
+				.single();
+
+			stripeTestMode = data?.value === 'true';
+		} catch (e: any) {
+			// Setting doesn't exist yet, default to false
+			stripeTestMode = false;
+		}
+	}
+
+	async function toggleStripeTestMode() {
+		loadingStripeMode = true;
+		error = '';
+		success = '';
+
+		try {
+			const newMode = !stripeTestMode;
+
+			const { error: updateError } = await supabase
+				.from('system_settings')
+				.upsert({
+					key: 'stripe_test_mode',
+					value: newMode.toString(),
+					updated_at: new Date().toISOString(),
+					updated_by: $user?.id,
+					description: 'Enable Stripe test mode (uses test API keys)'
+				});
+
+			if (updateError) throw updateError;
+
+			stripeTestMode = newMode;
+			success = `Stripe ${newMode ? 'TEST' : 'LIVE'} mode activated! All new checkouts will use ${newMode ? 'test' : 'live'} keys.`;
+
+			// Reload after 2 seconds to apply changes
+			setTimeout(() => {
+				window.location.reload();
+			}, 2000);
+		} catch (e: any) {
+			error = e.message || 'Failed to toggle Stripe mode';
+		} finally {
+			loadingStripeMode = false;
 		}
 	}
 
@@ -402,6 +455,9 @@
 			case 'settings':
 				loadSystemSettings();
 				break;
+			case 'stripe':
+				loadStripeSettings();
+				break;
 		}
 	}
 
@@ -507,6 +563,14 @@
 						: 'bg-gray-200 dark:bg-dark-accent hover:bg-gray-300 dark:hover:bg-gray-700'}"
 				>
 					<Code size={18} class="inline" /> Ads
+				</button>
+				<button
+					on:click={() => handleTabChange('stripe')}
+					class="px-4 py-2 rounded-lg font-bold whitespace-nowrap {activeTab === 'stripe'
+						? 'bg-primary text-white'
+						: 'bg-gray-200 dark:bg-dark-accent hover:bg-gray-300 dark:hover:bg-gray-700'}"
+				>
+					<DollarSign size={18} class="inline" /> Stripe
 				</button>
 				<a
 					href="/bolengadmin/game"
@@ -998,6 +1062,115 @@
 							</button>
 						</div>
 					{/each}
+				</div>
+			{/if}
+
+			<!-- Stripe Settings Tab -->
+			{#if activeTab === 'stripe'}
+				<div class="space-y-6">
+					<!-- Test Mode Banner (shown when test mode is ON) -->
+					{#if stripeTestMode}
+						<div class="card bg-gradient-to-r from-yellow-500 to-orange-500 text-white border-4 border-yellow-600">
+							<div class="flex items-center gap-3">
+								<Shield size={32} class="flex-shrink-0" />
+								<div>
+									<h3 class="text-xl font-bold">⚠️ STRIPE TEST MODE ACTIVE ⚠️</h3>
+									<p class="text-sm opacity-90">All Stripe checkouts are using TEST API keys. No real payments will be processed.</p>
+								</div>
+							</div>
+						</div>
+					{/if}
+
+					<!-- Test Mode Toggle -->
+					<div class="card">
+						<h2 class="text-xl font-bold mb-4">Stripe Environment</h2>
+
+						<div class="bg-gray-50 dark:bg-dark-accent p-6 rounded-lg mb-4">
+							<div class="flex items-center justify-between mb-4">
+								<div>
+									<h3 class="font-bold text-lg mb-1">Current Mode</h3>
+									<p class="text-sm dark:text-gray-300">
+										{#if stripeTestMode}
+											<span class="text-orange-600 dark:text-orange-400 font-bold">TEST MODE</span> - Using test API keys
+										{:else}
+											<span class="text-green-600 dark:text-green-400 font-bold">LIVE MODE</span> - Using production API keys
+										{/if}
+									</p>
+								</div>
+								<button
+									on:click={toggleStripeTestMode}
+									class="px-6 py-3 rounded-lg font-bold transition-all {stripeTestMode
+										? 'bg-green-500 hover:bg-green-600 text-white'
+										: 'bg-orange-500 hover:bg-orange-600 text-white'}"
+									disabled={loadingStripeMode}
+								>
+									{#if loadingStripeMode}
+										Switching...
+									{:else if stripeTestMode}
+										Switch to LIVE Mode
+									{:else}
+										Switch to TEST Mode
+									{/if}
+								</button>
+							</div>
+						</div>
+
+						<div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-4 rounded-lg">
+							<h4 class="font-bold mb-2 flex items-center gap-2">
+								<Settings size={18} />
+								About Stripe Modes
+							</h4>
+							<ul class="text-sm dark:text-gray-300 space-y-2">
+								<li>• <strong>Test Mode:</strong> Use for testing subscriptions without charging real money. Uses test API keys and test products.</li>
+								<li>• <strong>Live Mode:</strong> Production environment. Real payments are processed.</li>
+								<li>• Test mode requires setting up test products in your Stripe Dashboard.</li>
+								<li>• See <code>STRIPE_TEST_SETUP.md</code> for setup instructions.</li>
+							</ul>
+						</div>
+					</div>
+
+					<!-- Instructions Card -->
+					<div class="card">
+						<h2 class="text-xl font-bold mb-4">Setup Instructions</h2>
+
+						<div class="space-y-4">
+							<div>
+								<h3 class="font-semibold mb-2">1. Get Test API Keys</h3>
+								<p class="text-sm dark:text-gray-300 mb-2">Visit your <a href="https://dashboard.stripe.com/test/apikeys" target="_blank" rel="noopener" class="text-primary hover:underline">Stripe Test Dashboard</a> and copy:</p>
+								<ul class="text-sm dark:text-gray-300 list-disc list-inside ml-4">
+									<li>Publishable key (starts with <code>pk_test_</code>)</li>
+									<li>Secret key (starts with <code>sk_test_</code>)</li>
+								</ul>
+							</div>
+
+							<div>
+								<h3 class="font-semibold mb-2">2. Create Test Products</h3>
+								<p class="text-sm dark:text-gray-300">In Stripe Dashboard Test Mode, create:</p>
+								<ul class="text-sm dark:text-gray-300 list-disc list-inside ml-4">
+									<li><strong>BlueBalls Mid</strong> - $2/month recurring</li>
+									<li><strong>BlueBalls Big</strong> - $10/month recurring</li>
+								</ul>
+							</div>
+
+							<div>
+								<h3 class="font-semibold mb-2">3. Add to .env File</h3>
+								<pre class="bg-gray-800 text-gray-100 p-3 rounded text-xs overflow-x-auto">STRIPE_TEST_SECRET_KEY=sk_test_...
+STRIPE_TEST_PUBLISHABLE_KEY=pk_test_...
+STRIPE_TEST_PRICE_ID_MID=price_test_...
+STRIPE_TEST_PRICE_ID_BIG=price_test_...</pre>
+							</div>
+
+							<div>
+								<h3 class="font-semibold mb-2">4. Test Cards</h3>
+								<p class="text-sm dark:text-gray-300">Use these cards in test mode:</p>
+								<ul class="text-sm dark:text-gray-300 list-disc list-inside ml-4">
+									<li>Success: <code>4242 4242 4242 4242</code></li>
+									<li>Decline: <code>4000 0000 0000 0002</code></li>
+									<li>Use any future date (12/34) and any 3-digit CVC</li>
+								</ul>
+							</div>
+						</div>
+					</div>
 				</div>
 			{/if}
 		</div>
