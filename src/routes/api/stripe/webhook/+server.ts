@@ -2,13 +2,14 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { supabase } from '$lib/supabase';
 import Stripe from 'stripe';
-import { STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET } from '$env/static/private';
+import {
+	STRIPE_SECRET_KEY,
+	STRIPE_WEBHOOK_SECRET,
+	STRIPE_TEST_SECRET_KEY,
+	STRIPE_TEST_WEBHOOK_SECRET
+} from '$env/static/private';
 
-const stripe = new Stripe(STRIPE_SECRET_KEY, {
-	apiVersion: '2025-02-24.acacia'
-});
-
-export const POST: RequestHandler = async ({ request }) => {
+export const POST: RequestHandler = async ({ request, locals }) => {
 	try {
 		const body = await request.text();
 		const signature = request.headers.get('stripe-signature');
@@ -17,11 +18,32 @@ export const POST: RequestHandler = async ({ request }) => {
 			return json({ error: 'No signature' }, { status: 400 });
 		}
 
+		// Check if test mode is enabled
+		const { data: testModeSetting } = await locals.supabase
+			.from('system_settings')
+			.select('value')
+			.eq('key', 'stripe_test_mode')
+			.single();
+
+		const isTestMode = testModeSetting?.value === 'true';
+
+		// Use appropriate Stripe client and webhook secret based on mode
+		const stripeSecretKey = isTestMode
+			? (STRIPE_TEST_SECRET_KEY || STRIPE_SECRET_KEY)
+			: STRIPE_SECRET_KEY;
+		const webhookSecret = isTestMode
+			? (STRIPE_TEST_WEBHOOK_SECRET || STRIPE_WEBHOOK_SECRET)
+			: STRIPE_WEBHOOK_SECRET;
+
+		const stripe = new Stripe(stripeSecretKey, {
+			apiVersion: '2025-02-24.acacia'
+		});
+
 		// Verify webhook signature
 		let event: Stripe.Event;
 
 		try {
-			event = stripe.webhooks.constructEvent(body, signature, STRIPE_WEBHOOK_SECRET);
+			event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
 		} catch (err) {
 			console.error('Webhook signature verification failed:', err);
 			return json({ error: 'Invalid signature' }, { status: 400 });
@@ -31,7 +53,7 @@ export const POST: RequestHandler = async ({ request }) => {
 		switch (event.type) {
 			case 'checkout.session.completed': {
 				const session = event.data.object as Stripe.Checkout.Session;
-				await handleCheckoutComplete(session);
+				await handleCheckoutComplete(session, stripe);
 				break;
 			}
 
@@ -70,7 +92,7 @@ export const POST: RequestHandler = async ({ request }) => {
 	}
 };
 
-async function handleCheckoutComplete(session: Stripe.Checkout.Session) {
+async function handleCheckoutComplete(session: Stripe.Checkout.Session, stripe: Stripe) {
 	const userId = session.metadata?.user_id;
 	const tier = session.metadata?.tier as 'mid' | 'big';
 
