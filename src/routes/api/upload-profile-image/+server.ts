@@ -108,12 +108,18 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		});
 	} catch (err: any) {
 		console.error('Profile image upload error:', err);
+		console.error('Error stack:', err.stack);
+		console.error('Error details:', JSON.stringify(err, null, 2));
 
 		// If it's already an error from throw error(), pass it through
 		if (err.status) {
 			throw err;
 		}
 
-		throw error(500, err.message || 'Failed to upload profile image');
+		// Return detailed error message for debugging
+		const errorMessage = err.message || 'Failed to upload profile image';
+		const errorDetails = err.Code || err.name || 'Unknown error';
+
+		throw error(500, `${errorMessage} - ${errorDetails}`);
 	}
 };
