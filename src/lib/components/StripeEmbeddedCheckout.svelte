@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import { loadStripe } from '@stripe/stripe-js';
 	import { Loader2 } from 'lucide-svelte';
 	import { PUBLIC_SUPABASE_URL } from '$env/static/public';
@@ -11,9 +11,12 @@
 	let loading = true;
 	let error = '';
 	let checkoutContainer: HTMLDivElement;
+	let checkoutInstance: any = null; // Store reference to checkout instance
 
 	onMount(async () => {
 		try {
+			console.log('Mounting Stripe checkout with clientSecret:', clientSecret.substring(0, 20) + '...');
+
 			// Load Stripe
 			const stripe = await loadStripe(publishableKey);
 
@@ -22,21 +25,31 @@
 			}
 
 			// Mount embedded checkout
-			const checkout = await stripe.initEmbeddedCheckout({
+			checkoutInstance = await stripe.initEmbeddedCheckout({
 				clientSecret
 			});
 
-			checkout.mount(checkoutContainer);
+			checkoutInstance.mount(checkoutContainer);
+			console.log('Stripe checkout mounted successfully');
 			loading = false;
 		} catch (err: any) {
+			console.error('Stripe checkout mount error:', err);
 			error = err.message || 'Failed to load checkout';
 			loading = false;
 		}
+	});
 
-		// Cleanup on unmount
-		return () => {
-			// Stripe will handle cleanup
-		};
+	onDestroy(() => {
+		// Properly destroy the checkout instance to prevent "multiple checkout" errors
+		if (checkoutInstance) {
+			console.log('Destroying Stripe checkout instance');
+			try {
+				checkoutInstance.destroy();
+				checkoutInstance = null;
+			} catch (err) {
+				console.error('Error destroying checkout:', err);
+			}
+		}
 	});
 </script>
 

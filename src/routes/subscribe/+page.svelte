@@ -26,18 +26,12 @@
 	// Reset states and refresh session when user returns (e.g., from back button)
 	const handleVisibilityChange = async () => {
 		if (document.visibilityState === 'visible') {
-			// Reset checkout states
-			processingCheckout = false;
-			changingSubscription = false;
-			showCheckout = false;
-			checkoutClientSecret = '';
-			selectedTier = null;
-
-			// Refresh auth session to ensure it's valid
+			// Only refresh session and profile - DON'T reset checkout states
+			// This prevents buttons from disappearing when user returns
 			if ($user) {
 				const { data } = await supabase.auth.refreshSession();
 				if (data.session) {
-					// Session is valid, reload profile
+					// Session is valid, reload profile to check for subscription changes
 					const { data: profileData } = await supabase
 						.from('profiles')
 						.select('*')
@@ -46,19 +40,25 @@
 
 					if (profileData) {
 						$profile = profileData;
+
+						// If user now has a subscription, they likely completed payment
+						// Close the checkout modal and show success
+						if (profileData.membership_tier !== 'free' && showCheckout) {
+							showCheckout = false;
+							checkoutClientSecret = '';
+							selectedTier = null;
+							success = 'Payment successful! Your subscription is now active.';
+							setTimeout(() => success = '', 5000);
+						}
 					}
 				}
 			}
 		}
 	};
 
-	// Also handle focus events
+	// Also handle focus events - only refresh session, don't reset UI state
 	const handleFocus = async () => {
-		processingCheckout = false;
-		changingSubscription = false;
-		showCheckout = false;
-
-		// Refresh session
+		// Refresh session to keep it alive
 		if ($user) {
 			await supabase.auth.refreshSession();
 		}
@@ -96,11 +96,20 @@
 	async function handleSubscribe(tier: 'mid' | 'big') {
 		if (!$user) return;
 
+		// Prevent double-clicks and multiple checkout instances
+		if (processingCheckout || showCheckout) {
+			console.log('Already processing checkout or checkout is open');
+			return;
+		}
+
 		processingCheckout = true;
 		error = '';
+		success = '';
 		selectedTier = tier;
 
 		try {
+			console.log(`Starting checkout for tier: ${tier}`);
+
 			// Track checkout initiation
 			const value = tier === 'mid' ? 2 : 10;
 			analytics.initiateCheckout(tier, value);
@@ -116,6 +125,7 @@
 			}
 
 			const { publishableKey, isTestMode } = await settingsResponse.json();
+			console.log(`Stripe mode: ${isTestMode ? 'TEST' : 'LIVE'}`);
 
 			// Call API to create embedded checkout session
 			const response = await fetch('/api/stripe/create-checkout', {
@@ -136,6 +146,7 @@
 			}
 
 			const { clientSecret, isTestMode: testMode } = await response.json();
+			console.log('Checkout session created successfully');
 
 			// Show embedded checkout
 			checkoutClientSecret = clientSecret;
@@ -144,17 +155,26 @@
 			showCheckout = true;
 			processingCheckout = false;
 		} catch (e: any) {
+			console.error('Checkout error:', e);
 			error = e.message || 'Failed to start checkout process';
 			processingCheckout = false;
 			showCheckout = false;
+			selectedTier = null;
 		}
 	}
 
 	function closeCheckout() {
+		console.log('Closing checkout modal');
 		showCheckout = false;
-		checkoutClientSecret = '';
-		selectedTier = null;
+
+		// Small delay to allow Stripe to clean up before clearing the secret
+		setTimeout(() => {
+			checkoutClientSecret = '';
+			selectedTier = null;
+		}, 100);
+
 		error = '';
+		success = '';
 	}
 
 	async function handleChangeSubscription(newTier: 'mid' | 'big') {
@@ -439,9 +459,9 @@
 						<button
 							on:click={() => handleSubscribe('mid')}
 							class="btn-primary bg-orange-500 hover:bg-orange-600 w-full"
-							disabled={processingCheckout}
+							disabled={processingCheckout || showCheckout}
 						>
-							{processingCheckout ? 'Processing...' : 'Upgrade to Mid'}
+							{processingCheckout && selectedTier === 'mid' ? 'Processing...' : 'Upgrade to Mid'}
 						</button>
 					{/if}
 				</div>
@@ -505,9 +525,9 @@
 						<button
 							on:click={() => handleSubscribe('big')}
 							class="btn-primary bg-white text-primary hover:bg-gray-100 w-full font-bold"
-							disabled={processingCheckout}
+							disabled={processingCheckout || showCheckout}
 						>
-							{processingCheckout ? 'Processing...' : 'Upgrade to Big'}
+							{processingCheckout && selectedTier === 'big' ? 'Processing...' : 'Upgrade to Big'}
 						</button>
 					{/if}
 				</div>
@@ -586,11 +606,15 @@
 			</div>
 
 			<div class="modal-body">
-				<StripeEmbeddedCheckout
-					clientSecret={checkoutClientSecret}
-					publishableKey={checkoutPublishableKey}
-					isTestMode={checkoutIsTestMode}
-				/>
+				<!-- Use key to force component remount when clientSecret changes -->
+				<!-- This ensures old checkout instances are destroyed before new ones are created -->
+				{#key checkoutClientSecret}
+					<StripeEmbeddedCheckout
+						clientSecret={checkoutClientSecret}
+						publishableKey={checkoutPublishableKey}
+						isTestMode={checkoutIsTestMode}
+					/>
+				{/key}
 			</div>
 		</div>
 	</div>
