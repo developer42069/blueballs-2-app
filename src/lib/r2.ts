@@ -29,11 +29,21 @@ if (missingVars.length > 0) {
 	throw new Error(errorMsg);
 }
 
+// Sanitize endpoint URL - remove trailing slashes which can cause issues
+const sanitizedEndpointUrl = R2_ENDPOINT_URL.replace(/\/+$/, '');
+
+console.log('Initializing R2 client:', {
+	endpoint: sanitizedEndpointUrl,
+	bucket: R2_BUCKET_NAME,
+	hasAccessKey: !!R2_ACCESS_KEY_ID,
+	hasSecretKey: !!R2_SECRET_ACCESS_KEY
+});
+
 // Initialize R2 client with S3-compatible API
 // Configure for Cloudflare Workers/Pages environment
 const r2Client = new S3Client({
 	region: 'auto',
-	endpoint: R2_ENDPOINT_URL,
+	endpoint: sanitizedEndpointUrl,
 	credentials: {
 		accessKeyId: R2_ACCESS_KEY_ID,
 		secretAccessKey: R2_SECRET_ACCESS_KEY
@@ -53,10 +63,25 @@ export async function uploadToR2(
 	contentType: string
 ): Promise<string> {
 	try {
+		// Sanitize and validate contentType to avoid "Invalid header value" errors
+		// in Cloudflare Workers environment
+		let sanitizedContentType = contentType || 'application/octet-stream';
+
+		// Remove any control characters, null bytes, newlines, or other invalid characters
+		sanitizedContentType = sanitizedContentType
+			.replace(/[\x00-\x1F\x7F-\x9F]/g, '') // Remove control characters
+			.trim();
+
+		// If content type is empty after sanitization, use default
+		if (!sanitizedContentType) {
+			sanitizedContentType = 'application/octet-stream';
+		}
+
 		console.log('Uploading to R2:', {
 			bucket: R2_BUCKET_NAME,
 			key,
-			contentType,
+			originalContentType: contentType,
+			sanitizedContentType,
 			fileSize: file.length,
 			endpoint: R2_ENDPOINT_URL
 		});
@@ -65,9 +90,8 @@ export async function uploadToR2(
 			Bucket: R2_BUCKET_NAME,
 			Key: key,
 			Body: file,
-			ContentType: contentType,
-			// Make the file publicly accessible
-			// Note: Your R2 bucket must have public access enabled
+			ContentType: sanitizedContentType
+			// Note: Your R2 bucket must have public access enabled for CDN access
 		});
 
 		await r2Client.send(command);
