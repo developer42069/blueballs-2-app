@@ -29,14 +29,19 @@ if (missingVars.length > 0) {
 	throw new Error(errorMsg);
 }
 
-// Sanitize endpoint URL - remove trailing slashes which can cause issues
-const sanitizedEndpointUrl = R2_ENDPOINT_URL.replace(/\/+$/, '');
+// Sanitize all inputs to avoid "Invalid header value" errors in Cloudflare Workers
+// Remove any whitespace, newlines, or control characters from credentials
+const sanitizedAccessKeyId = R2_ACCESS_KEY_ID.replace(/\s/g, '').trim();
+const sanitizedSecretAccessKey = R2_SECRET_ACCESS_KEY.replace(/\s/g, '').trim();
+const sanitizedEndpointUrl = R2_ENDPOINT_URL.replace(/\/+$/, '').trim();
+const sanitizedBucketName = R2_BUCKET_NAME.trim();
 
 console.log('Initializing R2 client:', {
 	endpoint: sanitizedEndpointUrl,
-	bucket: R2_BUCKET_NAME,
-	hasAccessKey: !!R2_ACCESS_KEY_ID,
-	hasSecretKey: !!R2_SECRET_ACCESS_KEY
+	bucket: sanitizedBucketName,
+	accessKeyLength: sanitizedAccessKeyId.length,
+	secretKeyLength: sanitizedSecretAccessKey.length,
+	hasValidCredentials: sanitizedAccessKeyId.length > 0 && sanitizedSecretAccessKey.length > 0
 });
 
 // Initialize R2 client with S3-compatible API
@@ -45,12 +50,16 @@ const r2Client = new S3Client({
 	region: 'auto',
 	endpoint: sanitizedEndpointUrl,
 	credentials: {
-		accessKeyId: R2_ACCESS_KEY_ID,
-		secretAccessKey: R2_SECRET_ACCESS_KEY
+		accessKeyId: sanitizedAccessKeyId,
+		secretAccessKey: sanitizedSecretAccessKey
 	},
 	// Use FetchHttpHandler for Cloudflare Workers/Pages compatibility
 	// This avoids the "DOMParser is not defined" error
-	requestHandler: new FetchHttpHandler()
+	requestHandler: new FetchHttpHandler(),
+	// Disable S3 Transfer Acceleration which can cause header issues
+	useAccelerateEndpoint: false,
+	// Force path-style addressing
+	forcePathStyle: false
 });
 
 /**
@@ -78,16 +87,16 @@ export async function uploadToR2(
 		}
 
 		console.log('Uploading to R2:', {
-			bucket: R2_BUCKET_NAME,
+			bucket: sanitizedBucketName,
 			key,
 			originalContentType: contentType,
 			sanitizedContentType,
 			fileSize: file.length,
-			endpoint: R2_ENDPOINT_URL
+			endpoint: sanitizedEndpointUrl
 		});
 
 		const command = new PutObjectCommand({
-			Bucket: R2_BUCKET_NAME,
+			Bucket: sanitizedBucketName,
 			Key: key,
 			Body: file,
 			ContentType: sanitizedContentType
@@ -132,7 +141,7 @@ export async function uploadToR2(
 export async function deleteFromR2(key: string): Promise<void> {
 	try {
 		const command = new DeleteObjectCommand({
-			Bucket: R2_BUCKET_NAME,
+			Bucket: sanitizedBucketName,
 			Key: key
 		});
 
@@ -149,7 +158,7 @@ export async function deleteFromR2(key: string): Promise<void> {
 export async function fileExistsInR2(key: string): Promise<boolean> {
 	try {
 		const command = new HeadObjectCommand({
-			Bucket: R2_BUCKET_NAME,
+			Bucket: sanitizedBucketName,
 			Key: key
 		});
 
