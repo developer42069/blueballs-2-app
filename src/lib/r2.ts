@@ -1,4 +1,5 @@
 import { S3Client, PutObjectCommand, DeleteObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3';
+import { FetchHttpHandler } from '@aws-sdk/fetch-http-handler';
 import {
 	R2_ACCOUNT_ID,
 	R2_ACCESS_KEY_ID,
@@ -29,13 +30,17 @@ if (missingVars.length > 0) {
 }
 
 // Initialize R2 client with S3-compatible API
+// Configure for Cloudflare Workers/Pages environment
 const r2Client = new S3Client({
 	region: 'auto',
 	endpoint: R2_ENDPOINT_URL,
 	credentials: {
 		accessKeyId: R2_ACCESS_KEY_ID,
 		secretAccessKey: R2_SECRET_ACCESS_KEY
-	}
+	},
+	// Use FetchHttpHandler for Cloudflare Workers/Pages compatibility
+	// This avoids the "DOMParser is not defined" error
+	requestHandler: new FetchHttpHandler()
 });
 
 /**

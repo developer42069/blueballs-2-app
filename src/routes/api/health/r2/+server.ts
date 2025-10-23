@@ -1,6 +1,7 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { HeadObjectCommand } from '@aws-sdk/client-s3';
+import { HeadObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { FetchHttpHandler } from '@aws-sdk/fetch-http-handler';
 import {
 	R2_ACCESS_KEY_ID,
 	R2_SECRET_ACCESS_KEY,
@@ -8,7 +9,6 @@ import {
 	R2_PUBLIC_URL,
 	R2_ENDPOINT_URL
 } from '$env/static/private';
-import { S3Client } from '@aws-sdk/client-s3';
 
 export const GET: RequestHandler = async () => {
 	const healthCheck: any = {
@@ -52,7 +52,9 @@ export const GET: RequestHandler = async () => {
 			credentials: {
 				accessKeyId: R2_ACCESS_KEY_ID,
 				secretAccessKey: R2_SECRET_ACCESS_KEY
-			}
+			},
+			// Use FetchHttpHandler for Cloudflare Workers/Pages compatibility
+			requestHandler: new FetchHttpHandler()
 		});
 
 		// Test bucket access by trying to get metadata for a non-existent file
