@@ -21,13 +21,11 @@
 			console.error('Logout failed:', e);
 		}
 
-		// Redirect to homepage after 3 seconds with full page reload
+		// Redirect to homepage after 2 seconds with full page reload
 		// This ensures all cached state and data is completely cleared
-		const timer = setTimeout(() => {
+		setTimeout(() => {
 			window.location.href = '/';
-		}, 3000);
-
-		return () => clearTimeout(timer);
+		}, 2000);
 	});
 </script>
 

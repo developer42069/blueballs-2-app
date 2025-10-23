@@ -23,31 +23,18 @@
 	let checkoutIsTestMode = false;
 	let selectedTier: 'mid' | 'big' | null = null;
 
-	onMount(async () => {
-		// Wait a bit for auth to load before redirecting
-		await new Promise(resolve => setTimeout(resolve, 500));
+	// Reset states and refresh session when user returns (e.g., from back button)
+	const handleVisibilityChange = async () => {
+		if (document.visibilityState === 'visible') {
+			// Reset checkout states
+			processingCheckout = false;
+			changingSubscription = false;
+			showCheckout = false;
+			checkoutClientSecret = '';
+			selectedTier = null;
 
-		if (!$user) {
-			goto('/auth/login');
-			return;
-		}
-
-		// Track subscription page view
-		analytics.viewSubscription();
-
-		loading = false;
-
-		// Reset states and refresh session when user returns (e.g., from back button)
-		const handleVisibilityChange = async () => {
-			if (document.visibilityState === 'visible') {
-				// Reset checkout states
-				processingCheckout = false;
-				changingSubscription = false;
-				showCheckout = false;
-				checkoutClientSecret = '';
-				selectedTier = null;
-
-				// Refresh auth session to ensure it's valid
+			// Refresh auth session to ensure it's valid
+			if ($user) {
 				const { data } = await supabase.auth.refreshSession();
 				if (data.session) {
 					// Session is valid, reload profile
@@ -62,30 +49,45 @@
 					}
 				}
 			}
-		};
+		}
+	};
 
-		document.addEventListener('visibilitychange', handleVisibilityChange);
+	// Also handle focus events
+	const handleFocus = async () => {
+		processingCheckout = false;
+		changingSubscription = false;
+		showCheckout = false;
 
-		// Also handle focus events
-		const handleFocus = async () => {
-			processingCheckout = false;
-			changingSubscription = false;
-			showCheckout = false;
-
-			// Refresh session
+		// Refresh session
+		if ($user) {
 			await supabase.auth.refreshSession();
-		};
+		}
+	};
 
+	onMount(async () => {
+		// Wait a bit for auth to load before redirecting
+		await new Promise(resolve => setTimeout(resolve, 500));
+
+		if (!$user) {
+			goto('/auth/login');
+			return;
+		}
+
+		// Track subscription page view
+		analytics.viewSubscription();
+
+		loading = false;
+
+		// Add event listeners
+		document.addEventListener('visibilitychange', handleVisibilityChange);
 		window.addEventListener('focus', handleFocus);
-
-		// Cleanup
-		return () => {
-			document.removeEventListener('visibilitychange', handleVisibilityChange);
-			window.removeEventListener('focus', handleFocus);
-		};
 	});
 
 	onDestroy(() => {
+		// Clean up event listeners
+		document.removeEventListener('visibilitychange', handleVisibilityChange);
+		window.removeEventListener('focus', handleFocus);
+
 		// Clean up any pending states
 		showCheckout = false;
 		checkoutClientSecret = '';

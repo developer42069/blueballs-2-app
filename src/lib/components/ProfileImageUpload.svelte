@@ -237,11 +237,22 @@
 		success = '';
 
 		try {
-			// Check if user is logged in
-			const session = await supabase.auth.getSession();
-			if (!session.data.session) {
+			console.log('Starting upload for file:', file.name, file.size, 'bytes');
+
+			// Check if user is logged in and refresh session
+			const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+
+			if (sessionError) {
+				console.error('Session error:', sessionError);
+				throw new Error('Session error. Please log in again.');
+			}
+
+			if (!sessionData.session) {
+				console.error('No active session found');
 				throw new Error('No active session. Please log in again.');
 			}
+
+			console.log('Session valid, uploading file...');
 
 			const formData = new FormData();
 			formData.append('image', file);
@@ -253,13 +264,19 @@
 				body: formData,
 			});
 
+			console.log('Upload response status:', response.status, response.statusText);
+
 			const data = await response.json();
+			console.log('Upload response data:', data);
 
 			if (!response.ok) {
-				throw new Error(data.message || data.error || 'Upload failed');
+				const errorMsg = data.message || data.error || `Upload failed (${response.status})`;
+				console.error('Upload failed:', errorMsg);
+				throw new Error(errorMsg);
 			}
 
 			// Success!
+			console.log('Upload successful! URL:', data.url);
 			currentImageUrl = data.url;
 			previewUrl = data.url;
 			success = 'Profile picture updated successfully!';
@@ -270,6 +287,7 @@
 				success = '';
 			}, 3000);
 		} catch (err: any) {
+			console.error('Upload error:', err);
 			error = err.message || 'Failed to upload image';
 			// Reset preview on error
 			previewUrl = currentImageUrl;
