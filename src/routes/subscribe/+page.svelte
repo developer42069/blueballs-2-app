@@ -167,11 +167,11 @@
 		}
 	}
 
-	function closeCheckout() {
+	async function closeCheckout() {
 		console.log('Closing checkout modal');
 		showCheckout = false;
 
-		// Small delay to allow Stripe to clean up before clearing the secret
+		// Clean up Stripe checkout state
 		setTimeout(() => {
 			checkoutClientSecret = '';
 			selectedTier = null;
@@ -179,6 +179,18 @@
 
 		error = '';
 		success = '';
+
+		// Refresh session to clear any stale state from Stripe/hCaptcha cookies
+		// This prevents 500 errors if user refreshes immediately after closing modal
+		try {
+			if ($user) {
+				await supabase.auth.refreshSession();
+				console.log('Session refreshed after checkout close');
+			}
+		} catch (e) {
+			console.error('Error refreshing session after checkout close:', e);
+			// Don't throw - this is defensive cleanup
+		}
 	}
 
 	async function handleChangeSubscription(newTier: 'mid' | 'big') {
