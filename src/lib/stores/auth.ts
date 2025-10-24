@@ -10,6 +10,8 @@ export const loading = writable(true);
 /**
  * Refresh the profile from the database
  * This ensures all components have the latest profile data
+ *
+ * @returns Promise that resolves when profile is refreshed (does not throw errors)
  */
 export async function refreshProfile(): Promise<void> {
 	const currentUser = get(user);
@@ -27,7 +29,8 @@ export async function refreshProfile(): Promise<void> {
 
 		if (error) {
 			console.error('Failed to refresh profile:', error);
-			throw error;
+			// Don't throw - just log the error to prevent page crashes
+			return;
 		}
 
 		if (data) {
@@ -36,6 +39,6 @@ export async function refreshProfile(): Promise<void> {
 		}
 	} catch (error) {
 		console.error('Error refreshing profile:', error);
-		throw error;
+		// Don't throw - just log the error to prevent page crashes
 	}
 }

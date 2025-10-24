@@ -29,20 +29,25 @@
 			// Only refresh session and profile - DON'T reset checkout states
 			// This prevents buttons from disappearing when user returns
 			if ($user) {
-				const { data } = await supabase.auth.refreshSession();
-				if (data.session) {
-					// Use global refresh to ensure consistency
-					await refreshProfile();
+				try {
+					const { data } = await supabase.auth.refreshSession();
+					if (data.session) {
+						// Use global refresh to ensure consistency
+						await refreshProfile();
 
-					// If user now has a subscription, they likely completed payment
-					// Close the checkout modal and show success
-					if ($profile && $profile.membership_tier !== 'free' && showCheckout) {
-						showCheckout = false;
-						checkoutClientSecret = '';
-						selectedTier = null;
-						success = 'Payment successful! Your subscription is now active.';
-						setTimeout(() => success = '', 5000);
+						// If user now has a subscription, they likely completed payment
+						// Close the checkout modal and show success
+						if ($profile && $profile.membership_tier !== 'free' && showCheckout) {
+							showCheckout = false;
+							checkoutClientSecret = '';
+							selectedTier = null;
+							success = 'Payment successful! Your subscription is now active.';
+							setTimeout(() => success = '', 5000);
+						}
 					}
+				} catch (e) {
+					console.error('Error refreshing profile on visibility change:', e);
+					// Don't crash - just log the error
 				}
 			}
 		}
@@ -64,6 +69,13 @@
 			goto('/auth/login');
 			return;
 		}
+
+		// Clear any stale checkout state on fresh page load
+		// This prevents issues when user closes modal and refreshes
+		showCheckout = false;
+		checkoutClientSecret = '';
+		selectedTier = null;
+		processingCheckout = false;
 
 		// Track subscription page view
 		analytics.viewSubscription();

@@ -26,11 +26,27 @@
  * ```
  */
 declare module '$env/static/private' {
-	export const STRIPE_SECRET_KEY: string;
+	export const SUPABASE_SERVICE_ROLE_KEY: string;
+	export const SUPABASE_ACCESS_TOKEN: string;
+	export const STRIPE_TEST_PUBLISHABLE_KEY: string;
+	export const STRIPE_TEST_SECRET_KEY: string;
 	export const STRIPE_PUBLISHABLE_KEY: string;
+	export const STRIPE_SECRET_KEY: string;
 	export const STRIPE_WEBHOOK_SECRET: string;
 	export const STRIPE_PRICE_ID_MID: string;
 	export const STRIPE_PRICE_ID_BIG: string;
+	export const VITE_GOOGLE_CLIENT_ID: string;
+	export const VITE_GOOGLE_CLIENT_SECRET: string;
+	export const R2_ACCOUNT_ID: string;
+	export const R2_ACCESS_KEY_ID: string;
+	export const R2_SECRET_ACCESS_KEY: string;
+	export const R2_BUCKET_NAME: string;
+	export const R2_PUBLIC_URL: string;
+	export const R2_ENDPOINT_URL: string;
+	export const R2_CLOUDFLARE_API_TOKEN: string;
+	export const STRIPE_TEST_PRICE_ID_MID: string;
+	export const STRIPE_TEST_PRICE_ID_BIG: string;
+	export const STRIPE_TEST_WEBHOOK_SECRET: string;
 	export const ACLOCAL_PATH: string;
 	export const ACSetupSvcPort: string;
 	export const ACSvcPort: string;
@@ -51,7 +67,7 @@ declare module '$env/static/private' {
 	export const DISPLAY: string;
 	export const DriverData: string;
 	export const EDITOR: string;
-	export const EFC_5272_1592913036: string;
+	export const EFC_4912_1592913036: string;
 	export const ENABLE_IDE_INTEGRATION: string;
 	export const EXEPATH: string;
 	export const GIT_ASKPASS: string;
@@ -141,7 +157,6 @@ declare module '$env/static/private' {
 	export const USERDOMAIN_ROAMINGPROFILE: string;
 	export const USERNAME: string;
 	export const USERPROFILE: string;
-	export const VIPSHOME: string;
 	export const VSCODE_GIT_ASKPASS_EXTRA_ARGS: string;
 	export const VSCODE_GIT_ASKPASS_MAIN: string;
 	export const VSCODE_GIT_ASKPASS_NODE: string;
@@ -181,11 +196,27 @@ declare module '$env/static/public' {
  */
 declare module '$env/dynamic/private' {
 	export const env: {
-		STRIPE_SECRET_KEY: string;
+		SUPABASE_SERVICE_ROLE_KEY: string;
+		SUPABASE_ACCESS_TOKEN: string;
+		STRIPE_TEST_PUBLISHABLE_KEY: string;
+		STRIPE_TEST_SECRET_KEY: string;
 		STRIPE_PUBLISHABLE_KEY: string;
+		STRIPE_SECRET_KEY: string;
 		STRIPE_WEBHOOK_SECRET: string;
 		STRIPE_PRICE_ID_MID: string;
 		STRIPE_PRICE_ID_BIG: string;
+		VITE_GOOGLE_CLIENT_ID: string;
+		VITE_GOOGLE_CLIENT_SECRET: string;
+		R2_ACCOUNT_ID: string;
+		R2_ACCESS_KEY_ID: string;
+		R2_SECRET_ACCESS_KEY: string;
+		R2_BUCKET_NAME: string;
+		R2_PUBLIC_URL: string;
+		R2_ENDPOINT_URL: string;
+		R2_CLOUDFLARE_API_TOKEN: string;
+		STRIPE_TEST_PRICE_ID_MID: string;
+		STRIPE_TEST_PRICE_ID_BIG: string;
+		STRIPE_TEST_WEBHOOK_SECRET: string;
 		ACLOCAL_PATH: string;
 		ACSetupSvcPort: string;
 		ACSvcPort: string;
@@ -206,7 +237,7 @@ declare module '$env/dynamic/private' {
 		DISPLAY: string;
 		DriverData: string;
 		EDITOR: string;
-		EFC_5272_1592913036: string;
+		EFC_4912_1592913036: string;
 		ENABLE_IDE_INTEGRATION: string;
 		EXEPATH: string;
 		GIT_ASKPASS: string;
@@ -296,7 +327,6 @@ declare module '$env/dynamic/private' {
 		USERDOMAIN_ROAMINGPROFILE: string;
 		USERNAME: string;
 		USERPROFILE: string;
-		VIPSHOME: string;
 		VSCODE_GIT_ASKPASS_EXTRA_ARGS: string;
 		VSCODE_GIT_ASKPASS_MAIN: string;
 		VSCODE_GIT_ASKPASS_NODE: string;

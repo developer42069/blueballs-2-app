@@ -311,9 +311,9 @@
           on:click={toggleRightMenu}
           class="hover:scale-110 transition-transform"
         >
-          {#if $user && $profile?.profile_picture_url}
+          {#if $user && $profile?.profile_image_url}
             <img
-              src={$profile.profile_picture_url}
+              src={$profile.profile_image_url}
               alt="Profile"
               class="w-8 h-8 rounded-full border-2 border-white object-cover"
             />

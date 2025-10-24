@@ -1,0 +1,4 @@
+claude mcp add --transport http neon https://mcp.neon.tech/mcp \
+    --header "Authorization: Bearer napi_rhg6bh4fm1fya0xqyo9exu8uci1ig3b4a0ytunniq08z3p4pm1u1cp4j2dgk32ms"
+
+claude mcp add neon -- npx -y @neondatabase/mcp-server-neon start "napi_rhg6bh4fm1fya0xqyo9exu8uci1ig3b4a0ytunniq08z3p4pm1u1cp4j2dgk32ms"
