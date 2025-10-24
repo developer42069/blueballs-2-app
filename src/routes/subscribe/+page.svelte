@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
-	import { user, profile } from '$lib/stores/auth';
+	import { user, profile, refreshProfile } from '$lib/stores/auth';
 	import { goto } from '$app/navigation';
 	import { supabase } from '$lib/supabase';
 	import { MEMBERSHIP_TIERS } from '$lib/utils/gameConfig';
@@ -31,25 +31,17 @@
 			if ($user) {
 				const { data } = await supabase.auth.refreshSession();
 				if (data.session) {
-					// Session is valid, reload profile to check for subscription changes
-					const { data: profileData } = await supabase
-						.from('profiles')
-						.select('*')
-						.eq('id', $user.id)
-						.single();
+					// Use global refresh to ensure consistency
+					await refreshProfile();
 
-					if (profileData) {
-						$profile = profileData;
-
-						// If user now has a subscription, they likely completed payment
-						// Close the checkout modal and show success
-						if (profileData.membership_tier !== 'free' && showCheckout) {
-							showCheckout = false;
-							checkoutClientSecret = '';
-							selectedTier = null;
-							success = 'Payment successful! Your subscription is now active.';
-							setTimeout(() => success = '', 5000);
-						}
+					// If user now has a subscription, they likely completed payment
+					// Close the checkout modal and show success
+					if ($profile && $profile.membership_tier !== 'free' && showCheckout) {
+						showCheckout = false;
+						checkoutClientSecret = '';
+						selectedTier = null;
+						success = 'Payment successful! Your subscription is now active.';
+						setTimeout(() => success = '', 5000);
 					}
 				}
 			}

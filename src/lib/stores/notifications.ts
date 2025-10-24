@@ -12,7 +12,7 @@ export interface Notification {
 	created_at: string;
 	from_profile?: {
 		username: string;
-		profile_picture_url: string | null;
+		profile_image_url: string | null;
 	};
 }
 

@@ -29,7 +29,8 @@ export type Profile = {
 	high_score_easy: number;
 	high_score_medium: number;
 	high_score_hard: number;
-	profile_picture_url: string | null;
+	profile_picture_url: string | null; // Legacy column - use profile_image_url instead
+	profile_image_url: string | null; // Current column for profile images
 	profile_public: boolean;
 	social_link: string | null;
 	social_platform: string | null;

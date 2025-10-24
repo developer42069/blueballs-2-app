@@ -144,9 +144,9 @@
 								class="relative group cursor-pointer"
 								title="Click to change profile picture"
 							>
-								{#if profileData.profile_picture_url}
+								{#if profileData.profile_image_url}
 									<img
-										src={profileData.profile_picture_url}
+										src={profileData.profile_image_url}
 										alt={profileData.username}
 										class="w-32 h-32 rounded-full border-4 border-primary dark:border-secondary object-cover transition-opacity group-hover:opacity-75"
 									/>
@@ -162,9 +162,9 @@
 							</button>
 						{:else}
 							<!-- Non-clickable for other profiles -->
-							{#if profileData.profile_picture_url}
+							{#if profileData.profile_image_url}
 								<img
-									src={profileData.profile_picture_url}
+									src={profileData.profile_image_url}
 									alt={profileData.username}
 									class="w-32 h-32 rounded-full border-4 border-primary dark:border-secondary object-cover"
 								/>

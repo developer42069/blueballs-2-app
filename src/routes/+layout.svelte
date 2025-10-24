@@ -157,7 +157,7 @@
         *,
         from_profile:from_user_id (
           username,
-          profile_picture_url
+          profile_image_url
         )
       `)
       .eq('user_id', $user.id)
@@ -188,7 +188,7 @@
             *,
             from_profile:from_user_id (
               username,
-              profile_picture_url
+              profile_image_url
             )
           `)
           .eq('id', payload.new.id)

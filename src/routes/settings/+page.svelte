@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { user, profile } from '$lib/stores/auth';
+	import { user, profile, refreshProfile } from '$lib/stores/auth';
 	import { goto } from '$app/navigation';
 	import { supabase } from '$lib/supabase';
 	import { theme } from '$lib/stores/theme';
@@ -75,7 +75,7 @@
 		socialLink = $profile.social_link || '';
 		messageToWorld = $profile.message_to_world || '';
 		allowFriendRequests = $profile.allow_friend_requests;
-		profileImageUrl = $profile.profile_picture_url || '';
+		profileImageUrl = $profile.profile_image_url || '';
 	}
 
 	function loadPreferences() {
@@ -100,12 +100,12 @@
 		setTimeout(() => success = '', 3000);
 	}
 
-	function handleImageUploadSuccess(url: string) {
+	async function handleImageUploadSuccess(url: string) {
 		profileImageUrl = url;
-		if ($profile) {
-			// Update the profile store so all components react to the change
-			$profile = { ...$profile, profile_picture_url: url };
-		}
+
+		// Refresh profile from database to ensure consistency
+		await refreshProfile();
+
 		success = 'Profile picture updated successfully!';
 		setTimeout(() => success = '', 3000);
 	}
