@@ -1,9 +1,9 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import Stripe from 'stripe';
-import { STRIPE_SECRET_KEY, STRIPE_PRICE_ID_MID, STRIPE_PRICE_ID_BIG } from '$env/static/private';
+import { env } from '$env/dynamic/private';
 
-const stripe = new Stripe(STRIPE_SECRET_KEY, {
+const stripe = new Stripe(env.STRIPE_SECRET_KEY!, {
 	apiVersion: '2025-02-24.acacia'
 });
 
@@ -44,8 +44,8 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
 		// Determine new price ID
 		const priceIds: Record<string, string> = {
-			mid: STRIPE_PRICE_ID_MID,
-			big: STRIPE_PRICE_ID_BIG
+			mid: env.STRIPE_PRICE_ID_MID!,
+			big: env.STRIPE_PRICE_ID_BIG!
 		};
 
 		const newPriceId = priceIds[newTier];

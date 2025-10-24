@@ -1,14 +1,7 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import Stripe from 'stripe';
-import {
-	STRIPE_SECRET_KEY,
-	STRIPE_PRICE_ID_MID,
-	STRIPE_PRICE_ID_BIG,
-	STRIPE_TEST_SECRET_KEY,
-	STRIPE_TEST_PRICE_ID_MID,
-	STRIPE_TEST_PRICE_ID_BIG
-} from '$env/static/private';
+import { env } from '$env/dynamic/private';
 
 export const POST: RequestHandler = async ({ request, url, locals }) => {
 	try {
@@ -47,7 +40,7 @@ export const POST: RequestHandler = async ({ request, url, locals }) => {
 		const isTestMode = testModeSetting?.value === 'true';
 
 		// Use appropriate Stripe client based on mode
-		const stripeSecretKey = isTestMode ? (STRIPE_TEST_SECRET_KEY || STRIPE_SECRET_KEY) : STRIPE_SECRET_KEY;
+		const stripeSecretKey = isTestMode ? (env.STRIPE_TEST_SECRET_KEY || env.STRIPE_SECRET_KEY) : env.STRIPE_SECRET_KEY;
 		const stripe = new Stripe(stripeSecretKey, {
 			apiVersion: '2025-02-24.acacia'
 		});
@@ -76,12 +69,12 @@ export const POST: RequestHandler = async ({ request, url, locals }) => {
 		// Define price IDs based on mode
 		const priceIds: Record<string, string> = isTestMode
 			? {
-					mid: STRIPE_TEST_PRICE_ID_MID || STRIPE_PRICE_ID_MID,
-					big: STRIPE_TEST_PRICE_ID_BIG || STRIPE_PRICE_ID_BIG
+					mid: env.STRIPE_TEST_PRICE_ID_MID || env.STRIPE_PRICE_ID_MID,
+					big: env.STRIPE_TEST_PRICE_ID_BIG || env.STRIPE_PRICE_ID_BIG
 			  }
 			: {
-					mid: STRIPE_PRICE_ID_MID,
-					big: STRIPE_PRICE_ID_BIG
+					mid: env.STRIPE_PRICE_ID_MID,
+					big: env.STRIPE_PRICE_ID_BIG
 			  };
 
 		// Create checkout session with appropriate UI mode

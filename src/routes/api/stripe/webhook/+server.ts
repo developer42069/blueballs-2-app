@@ -2,12 +2,7 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { supabase } from '$lib/supabase';
 import Stripe from 'stripe';
-import {
-	STRIPE_SECRET_KEY,
-	STRIPE_WEBHOOK_SECRET,
-	STRIPE_TEST_SECRET_KEY,
-	STRIPE_TEST_WEBHOOK_SECRET
-} from '$env/static/private';
+import { env } from '$env/dynamic/private';
 
 export const POST: RequestHandler = async ({ request, locals }) => {
 	try {
@@ -29,11 +24,11 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
 		// Use appropriate Stripe client and webhook secret based on mode
 		const stripeSecretKey = isTestMode
-			? (STRIPE_TEST_SECRET_KEY || STRIPE_SECRET_KEY)
-			: STRIPE_SECRET_KEY;
+			? (env.STRIPE_TEST_SECRET_KEY || env.STRIPE_SECRET_KEY)
+			: env.STRIPE_SECRET_KEY;
 		const webhookSecret = isTestMode
-			? (STRIPE_TEST_WEBHOOK_SECRET || STRIPE_WEBHOOK_SECRET)
-			: STRIPE_WEBHOOK_SECRET;
+			? (env.STRIPE_TEST_WEBHOOK_SECRET || env.STRIPE_WEBHOOK_SECRET)
+			: env.STRIPE_WEBHOOK_SECRET;
 
 		const stripe = new Stripe(stripeSecretKey, {
 			apiVersion: '2025-02-24.acacia'

@@ -1,9 +1,6 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import {
-	STRIPE_PUBLISHABLE_KEY,
-	STRIPE_TEST_PUBLISHABLE_KEY
-} from '$env/static/private';
+import { env } from '$env/dynamic/private';
 
 export const GET: RequestHandler = async ({ locals }) => {
 	try {
@@ -18,8 +15,8 @@ export const GET: RequestHandler = async ({ locals }) => {
 
 		// Return appropriate publishable key
 		const publishableKey = isTestMode
-			? (STRIPE_TEST_PUBLISHABLE_KEY || STRIPE_PUBLISHABLE_KEY)
-			: STRIPE_PUBLISHABLE_KEY;
+			? (env.STRIPE_TEST_PUBLISHABLE_KEY || env.STRIPE_PUBLISHABLE_KEY)
+			: env.STRIPE_PUBLISHABLE_KEY;
 
 		return json({
 			publishableKey,
