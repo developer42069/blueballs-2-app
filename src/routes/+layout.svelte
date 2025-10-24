@@ -99,16 +99,38 @@
   });
 
   async function loadProfile(userId: string) {
-    console.log("Loading profile for user:", userId);
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", userId)
-      .single();
-    console.log("Profile loaded:", data);
-    console.log("Profile load error:", error);
-    console.log("is_admin value:", data?.is_admin);
-    $profile = data;
+    try {
+      console.log("Loading profile for user:", userId);
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", userId)
+        .single();
+
+      if (error) {
+        console.error("Profile load error:", error);
+        // Don't crash - keep existing profile or set to null gracefully
+        if (!$profile) {
+          $profile = null;
+        }
+        return;
+      }
+
+      if (data) {
+        console.log("Profile loaded successfully:", data);
+        console.log("is_admin value:", data.is_admin);
+        $profile = data;
+      } else {
+        console.warn("Profile data is null for user:", userId);
+        $profile = null;
+      }
+    } catch (err) {
+      console.error("Exception while loading profile:", err);
+      // Don't crash the app - gracefully handle the error
+      if (!$profile) {
+        $profile = null;
+      }
+    }
   }
 
   async function handleLogout() {

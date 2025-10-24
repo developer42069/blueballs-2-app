@@ -35,43 +35,67 @@
 	});
 
 	async function loadProfile() {
-		// Load profile data
-		const { data: profile } = await supabase
-			.from('profiles')
-			.select('*')
-			.eq('id', profileId)
-			.single();
-
-		if (!profile) return;
-
-		// Check if profile is public or if it's the user's own profile
-		if (!profile.profile_public && !isOwnProfile) {
-			profileData = null;
-			return;
-		}
-
-		profileData = profile;
-
-		// Load recent scores
-		const { data: scores } = await supabase
-			.from('game_scores')
-			.select('*')
-			.eq('user_id', profileId)
-			.order('created_at', { ascending: false })
-			.limit(10);
-
-		recentScores = scores || [];
-
-		// Check if friend (if logged in)
-		if ($user && !isOwnProfile) {
-			const { data: friendData } = await supabase
-				.from('friends')
-				.select('id')
-				.eq('user_id', $user.id)
-				.eq('friend_id', profileId)
+		try {
+			// Load profile data
+			const { data: profile, error: profileError } = await supabase
+				.from('profiles')
+				.select('*')
+				.eq('id', profileId)
 				.single();
 
-			isFriend = !!friendData;
+			if (profileError) {
+				console.error('Error loading profile:', profileError);
+				profileData = null;
+				return;
+			}
+
+			if (!profile) {
+				console.warn('Profile not found for ID:', profileId);
+				profileData = null;
+				return;
+			}
+
+			// Check if profile is public or if it's the user's own profile
+			if (!profile.profile_public && !isOwnProfile) {
+				profileData = null;
+				return;
+			}
+
+			profileData = profile;
+
+			// Load recent scores
+			const { data: scores, error: scoresError } = await supabase
+				.from('game_scores')
+				.select('*')
+				.eq('user_id', profileId)
+				.order('created_at', { ascending: false })
+				.limit(10);
+
+			if (scoresError) {
+				console.error('Error loading scores:', scoresError);
+			}
+
+			recentScores = scores || [];
+
+			// Check if friend (if logged in)
+			if ($user && !isOwnProfile) {
+				const { data: friendData, error: friendError } = await supabase
+					.from('friends')
+					.select('id')
+					.eq('user_id', $user.id)
+					.eq('friend_id', profileId)
+					.single();
+
+				if (friendError && friendError.code !== 'PGRST116') {
+					// PGRST116 is "no rows returned" - not an error in this case
+					console.error('Error checking friend status:', friendError);
+				}
+
+				isFriend = !!friendData;
+			}
+		} catch (err) {
+			console.error('Exception while loading profile:', err);
+			profileData = null;
 		}
 	}
 
