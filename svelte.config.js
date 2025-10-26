@@ -1,25 +1,25 @@
-// Use Node adapter for Docker deployment
-import adapter from '@sveltejs/adapter-node';
-// Cloudflare adapter - commented out for Docker deployment
-// import adapterCloudflare from '@sveltejs/adapter-cloudflare';
+// Cloudflare adapter for Cloudflare Pages deployment
+import adapter from '@sveltejs/adapter-cloudflare';
+// Node adapter - use for Docker deployment
+// import adapterNode from '@sveltejs/adapter-node';
 import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
 	preprocess: vitePreprocess(),
 	kit: {
-		// Node adapter for Docker
+		// Cloudflare adapter for Cloudflare Pages
 		adapter: adapter({
-			out: 'build',
-			precompress: false,
-			envPrefix: ''
+			routes: {
+				include: ['/*'],
+				exclude: ['<all>']
+			}
 		}),
-		// Cloudflare adapter (for Cloudflare Pages deployment)
-		// adapter: adapterCloudflare({
-		// 	routes: {
-		// 		include: ['/*'],
-		// 		exclude: ['<all>']
-		// 	}
+		// Node adapter (for Docker deployment)
+		// adapter: adapterNode({
+		// 	out: 'build',
+		// 	precompress: false,
+		// 	envPrefix: ''
 		// }),
 		alias: {
 			$lib: './src/lib'
