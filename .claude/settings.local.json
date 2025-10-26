@@ -19,7 +19,9 @@
       "mcp__supabase__get_logs",
       "mcp__supabase__get_advisors",
       "mcp__supabase__apply_migration",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(git reset:*)",
+      "Bash(git rm:*)"
     ],
     "deny": [],
     "ask": []
