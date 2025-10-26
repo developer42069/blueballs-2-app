@@ -2,7 +2,6 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { loadStripe } from '@stripe/stripe-js';
 	import { Loader2 } from 'lucide-svelte';
-	import { PUBLIC_SUPABASE_URL } from '$env/static/public';
 
 	export let clientSecret: string;
 	export let publishableKey: string;

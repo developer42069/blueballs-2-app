@@ -1,11 +1,11 @@
 import { createBrowserClient } from '@supabase/ssr';
-import { PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY } from '$env/static/public';
+import { env } from '$env/dynamic/public';
 
 // Create a singleton browser client for use in components
 // This uses @supabase/ssr which properly handles cookies
 export const supabase = createBrowserClient(
-	PUBLIC_SUPABASE_URL,
-	PUBLIC_SUPABASE_ANON_KEY
+	env.PUBLIC_SUPABASE_URL,
+	env.PUBLIC_SUPABASE_ANON_KEY
 );
 
 export type Profile = {

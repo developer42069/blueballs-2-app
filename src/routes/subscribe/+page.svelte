@@ -7,7 +7,7 @@
 	import { Heart, Zap, Star, CheckCircle, X, Crown, Image, MessageCircle, XCircle } from 'lucide-svelte';
 	import { analytics } from '$lib/analytics';
 	import StripeEmbeddedCheckout from '$lib/components/StripeEmbeddedCheckout.svelte';
-	import { PUBLIC_SUPABASE_URL } from '$env/static/public';
+	import { env } from '$env/dynamic/public';
 
 	let loading = true;
 	let processingCheckout = false;

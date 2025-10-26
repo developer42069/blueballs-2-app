@@ -1,4 +1,4 @@
-import { PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY } from '$env/static/public';
+import { env } from '$env/dynamic/public';
 import { createServerClient } from '@supabase/ssr';
 import type { Handle } from '@sveltejs/kit';
 
@@ -9,7 +9,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 		 *
 		 * The Supabase client is configured to use cookies to persist the user session.
 		 */
-		event.locals.supabase = createServerClient(PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY, {
+		event.locals.supabase = createServerClient(env.PUBLIC_SUPABASE_URL, env.PUBLIC_SUPABASE_ANON_KEY, {
 			cookies: {
 				getAll: () => event.cookies.getAll(),
 				/**
