@@ -57,6 +57,12 @@
 
     // Get initial session
     (async () => {
+      // Check if logout is in progress
+      if (sessionStorage.getItem('logout-in-progress') === 'true') {
+        $loading = false;
+        return;
+      }
+
       const {
         data: { session },
       } = await supabase.auth.getSession();
@@ -72,7 +78,26 @@
     // Listen for auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      // Don't restore session if logout is in progress
+      if (sessionStorage.getItem('logout-in-progress') === 'true') {
+        return;
+      }
+
+      // Handle SIGNED_OUT event explicitly
+      if (event === 'SIGNED_OUT') {
+        $user = null;
+        $profile = null;
+        $notifications = [];
+        $unreadCount = 0;
+        if ($notificationChannel) {
+          await supabase.removeChannel($notificationChannel);
+          $notificationChannel = null;
+        }
+        return;
+      }
+
+      // Handle other events
       $user = session?.user ?? null;
       if (session?.user) {
         await loadProfile(session.user.id);

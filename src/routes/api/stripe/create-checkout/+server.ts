@@ -5,7 +5,7 @@ import { env } from '$env/dynamic/private';
 
 export const POST: RequestHandler = async ({ request, url, locals }) => {
 	try {
-		const { tier, useEmbedded = true } = await request.json();
+		const { tier } = await request.json();
 
 		// Validate tier
 		if (!['mid', 'big'].includes(tier)) {
@@ -77,7 +77,7 @@ export const POST: RequestHandler = async ({ request, url, locals }) => {
 					big: env.STRIPE_PRICE_ID_BIG
 			  };
 
-		// Create checkout session with appropriate UI mode
+		// Create checkout session with hosted mode (redirects to Stripe)
 		const checkoutSessionParams: Stripe.Checkout.SessionCreateParams = {
 			customer: customerId,
 			mode: 'subscription',
@@ -87,6 +87,8 @@ export const POST: RequestHandler = async ({ request, url, locals }) => {
 					quantity: 1
 				}
 			],
+			success_url: `${url.origin}/subscribe/success?session_id={CHECKOUT_SESSION_ID}&tier=${tier}`,
+			cancel_url: `${url.origin}/subscribe`,
 			metadata: {
 				user_id: user.id,
 				tier,
@@ -94,35 +96,14 @@ export const POST: RequestHandler = async ({ request, url, locals }) => {
 			}
 		};
 
-		// Add UI mode specific parameters
-		if (useEmbedded) {
-			// Embedded checkout
-			checkoutSessionParams.ui_mode = 'embedded';
-			checkoutSessionParams.return_url = `${url.origin}/subscribe/success?session_id={CHECKOUT_SESSION_ID}&tier=${tier}`;
-		} else {
-			// Hosted checkout (redirect)
-			checkoutSessionParams.success_url = `${url.origin}/subscribe/success?session_id={CHECKOUT_SESSION_ID}&tier=${tier}`;
-			checkoutSessionParams.cancel_url = `${url.origin}/subscribe`;
-		}
-
 		const checkoutSession = await stripe.checkout.sessions.create(checkoutSessionParams);
 
-		// Return appropriate response based on UI mode
-		if (useEmbedded) {
-			return json({
-				success: true,
-				sessionId: checkoutSession.id,
-				clientSecret: checkoutSession.client_secret,
-				isTestMode
-			});
-		} else {
-			return json({
-				success: true,
-				sessionId: checkoutSession.id,
-				url: checkoutSession.url,
-				isTestMode
-			});
-		}
+		return json({
+			success: true,
+			sessionId: checkoutSession.id,
+			url: checkoutSession.url,
+			isTestMode
+		});
 	} catch (error) {
 		console.error('Stripe checkout error:', error);
 		return json({ success: false, error: 'Failed to create checkout session' }, { status: 500 });

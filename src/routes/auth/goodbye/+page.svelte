@@ -14,9 +14,29 @@
 				console.error('Logout error:', error);
 			}
 
-			// Clear any cached session data
-			localStorage.clear();
-			sessionStorage.clear();
+			// Only clear Supabase-specific storage items, not everything
+			// This prevents breaking other app functionality
+			const keysToRemove = [];
+			for (let i = 0; i < localStorage.length; i++) {
+				const key = localStorage.key(i);
+				if (key && (key.startsWith('supabase.') || key.startsWith('sb-'))) {
+					keysToRemove.push(key);
+				}
+			}
+			keysToRemove.forEach(key => localStorage.removeItem(key));
+
+			// Clear session storage Supabase items
+			const sessionKeysToRemove = [];
+			for (let i = 0; i < sessionStorage.length; i++) {
+				const key = sessionStorage.key(i);
+				if (key && (key.startsWith('supabase.') || key.startsWith('sb-'))) {
+					sessionKeysToRemove.push(key);
+				}
+			}
+			sessionKeysToRemove.forEach(key => sessionStorage.removeItem(key));
+
+			// Set a flag to prevent session restoration
+			sessionStorage.setItem('logout-in-progress', 'true');
 		} catch (e) {
 			console.error('Logout failed:', e);
 		}
@@ -24,6 +44,7 @@
 		// Redirect to homepage after 2 seconds with full page reload
 		// This ensures all cached state and data is completely cleared
 		setTimeout(() => {
+			sessionStorage.removeItem('logout-in-progress');
 			window.location.href = '/';
 		}, 2000);
 	});

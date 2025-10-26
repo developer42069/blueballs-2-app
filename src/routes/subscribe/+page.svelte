@@ -1,13 +1,11 @@
 <script lang="ts">
-	import { onMount, onDestroy } from 'svelte';
+	import { onMount } from 'svelte';
 	import { user, profile, refreshProfile } from '$lib/stores/auth';
 	import { goto } from '$app/navigation';
 	import { supabase } from '$lib/supabase';
 	import { MEMBERSHIP_TIERS } from '$lib/utils/gameConfig';
 	import { Heart, Zap, Star, CheckCircle, X, Crown, Image, MessageCircle, XCircle } from 'lucide-svelte';
 	import { analytics } from '$lib/analytics';
-	import StripeEmbeddedCheckout from '$lib/components/StripeEmbeddedCheckout.svelte';
-	import { env } from '$env/dynamic/public';
 
 	let loading = true;
 	let processingCheckout = false;
@@ -15,51 +13,6 @@
 	let success = '';
 	let cancelLoading = false;
 	let changingSubscription = false;
-
-	// Embedded checkout state
-	let showCheckout = false;
-	let checkoutClientSecret = '';
-	let checkoutPublishableKey = '';
-	let checkoutIsTestMode = false;
-	let selectedTier: 'mid' | 'big' | null = null;
-
-	// Reset states and refresh session when user returns (e.g., from back button)
-	const handleVisibilityChange = async () => {
-		if (document.visibilityState === 'visible') {
-			// Only refresh session and profile - DON'T reset checkout states
-			// This prevents buttons from disappearing when user returns
-			if ($user) {
-				try {
-					const { data } = await supabase.auth.refreshSession();
-					if (data.session) {
-						// Use global refresh to ensure consistency
-						await refreshProfile();
-
-						// If user now has a subscription, they likely completed payment
-						// Close the checkout modal and show success
-						if ($profile && $profile.membership_tier !== 'free' && showCheckout) {
-							showCheckout = false;
-							checkoutClientSecret = '';
-							selectedTier = null;
-							success = 'Payment successful! Your subscription is now active.';
-							setTimeout(() => success = '', 5000);
-						}
-					}
-				} catch (e) {
-					console.error('Error refreshing profile on visibility change:', e);
-					// Don't crash - just log the error
-				}
-			}
-		}
-	};
-
-	// Also handle focus events - only refresh session, don't reset UI state
-	const handleFocus = async () => {
-		// Refresh session to keep it alive
-		if ($user) {
-			await supabase.auth.refreshSession();
-		}
-	};
 
 	onMount(async () => {
 		// Wait a bit for auth to load before redirecting
@@ -70,78 +23,37 @@
 			return;
 		}
 
-		// Clear any stale checkout state on fresh page load
-		// This prevents issues when user closes modal and refreshes
-		showCheckout = false;
-		checkoutClientSecret = '';
-		selectedTier = null;
-		processingCheckout = false;
-
 		// Track subscription page view
 		analytics.viewSubscription();
 
 		loading = false;
-
-		// Add event listeners
-		document.addEventListener('visibilitychange', handleVisibilityChange);
-		window.addEventListener('focus', handleFocus);
-	});
-
-	onDestroy(() => {
-		// Clean up event listeners
-		document.removeEventListener('visibilitychange', handleVisibilityChange);
-		window.removeEventListener('focus', handleFocus);
-
-		// Clean up any pending states
-		showCheckout = false;
-		checkoutClientSecret = '';
 	});
 
 	async function handleSubscribe(tier: 'mid' | 'big') {
 		if (!$user) return;
 
-		// Prevent double-clicks and multiple checkout instances
-		if (processingCheckout || showCheckout) {
-			console.log('Already processing checkout or checkout is open');
+		// Prevent double-clicks
+		if (processingCheckout) {
 			return;
 		}
 
 		processingCheckout = true;
 		error = '';
 		success = '';
-		selectedTier = tier;
 
 		try {
-			console.log(`Starting checkout for tier: ${tier}`);
-
 			// Track checkout initiation
 			const value = tier === 'mid' ? 2 : 10;
 			analytics.initiateCheckout(tier, value);
 
-			// Get the publishable key from env or fetch it
-			// We need to know if we're in test mode to use the right key
-			const settingsResponse = await fetch('/api/stripe/get-publishable-key', {
-				credentials: 'same-origin'
-			});
-
-			if (!settingsResponse.ok) {
-				throw new Error('Failed to get Stripe configuration');
-			}
-
-			const { publishableKey, isTestMode } = await settingsResponse.json();
-			console.log(`Stripe mode: ${isTestMode ? 'TEST' : 'LIVE'}`);
-
-			// Call API to create embedded checkout session
+			// Call API to create hosted checkout session
 			const response = await fetch('/api/stripe/create-checkout', {
 				method: 'POST',
 				credentials: 'same-origin',
 				headers: {
 					'Content-Type': 'application/json'
 				},
-				body: JSON.stringify({
-					tier,
-					useEmbedded: true
-				})
+				body: JSON.stringify({ tier })
 			});
 
 			if (!response.ok) {
@@ -149,47 +61,18 @@
 				throw new Error(data.error || 'Failed to create checkout session');
 			}
 
-			const { clientSecret, isTestMode: testMode } = await response.json();
-			console.log('Checkout session created successfully');
+			const { url } = await response.json();
 
-			// Show embedded checkout
-			checkoutClientSecret = clientSecret;
-			checkoutPublishableKey = publishableKey;
-			checkoutIsTestMode = testMode;
-			showCheckout = true;
-			processingCheckout = false;
+			// Redirect to Stripe's hosted checkout page
+			if (url) {
+				window.location.href = url;
+			} else {
+				throw new Error('No checkout URL received');
+			}
 		} catch (e: any) {
 			console.error('Checkout error:', e);
 			error = e.message || 'Failed to start checkout process';
 			processingCheckout = false;
-			showCheckout = false;
-			selectedTier = null;
-		}
-	}
-
-	async function closeCheckout() {
-		console.log('Closing checkout modal');
-		showCheckout = false;
-
-		// Clean up Stripe checkout state
-		setTimeout(() => {
-			checkoutClientSecret = '';
-			selectedTier = null;
-		}, 100);
-
-		error = '';
-		success = '';
-
-		// Refresh session to clear any stale state from Stripe/hCaptcha cookies
-		// This prevents 500 errors if user refreshes immediately after closing modal
-		try {
-			if ($user) {
-				await supabase.auth.refreshSession();
-				console.log('Session refreshed after checkout close');
-			}
-		} catch (e) {
-			console.error('Error refreshing session after checkout close:', e);
-			// Don't throw - this is defensive cleanup
 		}
 	}
 
@@ -475,9 +358,9 @@
 						<button
 							on:click={() => handleSubscribe('mid')}
 							class="btn-primary bg-orange-500 hover:bg-orange-600 w-full"
-							disabled={processingCheckout || showCheckout}
+							disabled={processingCheckout}
 						>
-							{processingCheckout && selectedTier === 'mid' ? 'Processing...' : 'Upgrade to Mid'}
+							{processingCheckout ? 'Redirecting to Stripe...' : 'Upgrade to Mid'}
 						</button>
 					{/if}
 				</div>
@@ -541,9 +424,9 @@
 						<button
 							on:click={() => handleSubscribe('big')}
 							class="btn-primary bg-white text-primary hover:bg-gray-100 w-full font-bold"
-							disabled={processingCheckout || showCheckout}
+							disabled={processingCheckout}
 						>
-							{processingCheckout && selectedTier === 'big' ? 'Processing...' : 'Upgrade to Big'}
+							{processingCheckout ? 'Redirecting to Stripe...' : 'Upgrade to Big'}
 						</button>
 					{/if}
 				</div>
@@ -603,132 +486,3 @@
 		</div>
 	</div>
 {/if}
-
-<!-- Embedded Checkout Modal -->
-{#if showCheckout && checkoutClientSecret}
-	<!-- svelte-ignore a11y-click-events-have-key-events -->
-	<!-- svelte-ignore a11y-no-static-element-interactions -->
-	<div class="modal-backdrop" on:click={closeCheckout}>
-		<!-- svelte-ignore a11y-click-events-have-key-events -->
-		<!-- svelte-ignore a11y-no-static-element-interactions -->
-		<div class="modal-content" on:click|stopPropagation>
-			<div class="modal-header">
-				<h2 class="text-2xl font-bold">
-					Complete Your Subscription
-				</h2>
-				<button type="button" class="close-button" on:click={closeCheckout}>
-					<X size={24} />
-				</button>
-			</div>
-
-			<div class="modal-body">
-				<!-- Use key to force component remount when clientSecret changes -->
-				<!-- This ensures old checkout instances are destroyed before new ones are created -->
-				{#key checkoutClientSecret}
-					<StripeEmbeddedCheckout
-						clientSecret={checkoutClientSecret}
-						publishableKey={checkoutPublishableKey}
-						isTestMode={checkoutIsTestMode}
-					/>
-				{/key}
-			</div>
-		</div>
-	</div>
-{/if}
-
-<style>
-	/* Modal styles */
-	.modal-backdrop {
-		position: fixed;
-		top: 0;
-		left: 0;
-		right: 0;
-		bottom: 0;
-		background: rgba(0, 0, 0, 0.8);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		z-index: 9999;
-		padding: 1rem;
-		animation: fadeIn 0.2s ease;
-	}
-
-	@keyframes fadeIn {
-		from {
-			opacity: 0;
-		}
-		to {
-			opacity: 1;
-		}
-	}
-
-	.modal-content {
-		background: white;
-		border-radius: 1rem;
-		max-width: 700px;
-		width: 100%;
-		max-height: 90vh;
-		overflow-y: auto;
-		box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-		animation: slideUp 0.3s ease;
-	}
-
-	:global(.dark) .modal-content {
-		background: #1f2937;
-	}
-
-	@keyframes slideUp {
-		from {
-			transform: translateY(20px);
-			opacity: 0;
-		}
-		to {
-			transform: translateY(0);
-			opacity: 1;
-		}
-	}
-
-	.modal-header {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		padding: 1.5rem;
-		border-bottom: 1px solid #e5e7eb;
-	}
-
-	:global(.dark) .modal-header {
-		border-bottom-color: #374151;
-	}
-
-	.modal-header h2 {
-		color: #111827;
-	}
-
-	:global(.dark) .modal-header h2 {
-		color: #f9fafb;
-	}
-
-	.close-button {
-		background: none;
-		border: none;
-		cursor: pointer;
-		padding: 0.5rem;
-		border-radius: 0.5rem;
-		color: #6b7280;
-		transition: all 0.2s ease;
-	}
-
-	.close-button:hover {
-		background: #f3f4f6;
-		color: #111827;
-	}
-
-	:global(.dark) .close-button:hover {
-		background: #374151;
-		color: #f9fafb;
-	}
-
-	.modal-body {
-		padding: 1.5rem;
-	}
-</style>

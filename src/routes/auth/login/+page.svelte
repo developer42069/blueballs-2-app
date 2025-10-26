@@ -74,19 +74,22 @@
 		error = '';
 
 		try {
-			const { error: signInError } = await supabase.auth.signInWithOAuth({
+			const { data, error: signInError } = await supabase.auth.signInWithOAuth({
 				provider,
 				options: {
 					redirectTo: `${window.location.origin}/auth/callback`,
 					queryParams: {
 						country_code: countryCode,
 						region: region
-					}
+					},
+					// Skip browser redirect on server-side to get the URL
+					skipBrowserRedirect: false
 				}
 			});
 
 			if (signInError) throw signInError;
 
+			// The browser will automatically redirect to the OAuth provider
 			// Analytics will be tracked in callback after successful authentication
 		} catch (e: any) {
 			error = e.message || 'Failed to login with OAuth';
