@@ -21,7 +21,15 @@
       "mcp__supabase__apply_migration",
       "Bash(npm run build:*)",
       "Bash(git reset:*)",
-      "Bash(git rm:*)"
+      "Bash(git rm:*)",
+      "Bash(git remote:*)",
+      "Bash(git branch:*)",
+      "Bash(gh --version:*)",
+      "Bash(docker --version:*)",
+      "Bash(npm run docker:build:*)",
+      "Bash(npm run docker:up:*)",
+      "Bash(npm run docker:logs:*)",
+      "Bash(curl:*)"
     ],
     "deny": [],
     "ask": []

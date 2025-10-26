@@ -1,0 +1,44 @@
+# Dependencies
+node_modules
+npm-debug.log
+yarn-error.log
+
+# Build output
+.svelte-kit
+build
+dist
+.output
+
+# Environment (keep .env for build, but ignore local variants)
+# .env is needed for SvelteKit build
+.env.local
+.env.*.local
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git
+.gitignore
+
+# Documentation
+*.md
+docs
+
+# Tests
+*.test.js
+*.spec.js
+coverage
+
+# Misc
+.prettierrc
+.eslintrc
+.editorconfig
