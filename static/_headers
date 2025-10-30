@@ -1,0 +1,27 @@
+# === CLOUDFLARE PAGES HEADERS FOR SVELTEKIT + SUPABASE ===
+
+# Static assets - long cache (SvelteKit immutable files)
+/_app/immutable/*
+  Cache-Control: public, immutable, max-age=31536000
+
+# API routes - NEVER CACHE (critical for auth)
+/api/*
+  Cache-Control: no-store, no-cache, must-revalidate, proxy-revalidate
+  Pragma: no-cache
+  Expires: 0
+  X-Robots-Tag: noindex
+
+# Auth routes - NEVER CACHE (login, logout, callbacks)
+/auth/*
+  Cache-Control: no-store, no-cache, must-revalidate, proxy-revalidate
+  Pragma: no-cache
+  Expires: 0
+  X-Robots-Tag: noindex
+
+# SvelteKit version files - no cache
+/_app/version.json
+  Cache-Control: no-cache
+
+# All other dynamic pages - minimal cache
+/*
+  Cache-Control: public, max-age=0, must-revalidate

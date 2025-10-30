@@ -32,6 +32,7 @@
   let isLoadingNotifications = false;
 
   let authSubscription: any = null;
+  let lastUserId: string | null = null;
 
   onMount(async () => {
     // Check viewport size
@@ -61,37 +62,36 @@
     // Initialize auth - this handles session loading and sets up the listener
     authSubscription = await initializeAuth();
 
-    // Set up a separate listener for profile/notification loading
-    // This keeps auth state separate from app data loading
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Layout: Auth state changed', event);
+    // Load initial profile and notifications if user is already logged in
+    if ($user) {
+      lastUserId = $user.id;
+      await loadProfile($user.id);
+      await loadNotifications();
+      subscribeToNotifications();
+    }
+
+    // Set up auth state listener for profile/notification loading
+    // This watches the reactive user store for changes after initial load
+    const unsubscribeUser = user.subscribe(async (currentUser) => {
+      // Skip if user hasn't changed (prevents duplicate loads)
+      const newUserId = currentUser?.id ?? null;
+      if (newUserId === lastUserId) {
+        return;
+      }
+      lastUserId = newUserId;
 
       // Don't restore session if logout is in progress
       if (sessionStorage.getItem('logout-in-progress') === 'true') {
         return;
       }
 
-      // Handle SIGNED_OUT event
-      if (event === 'SIGNED_OUT') {
-        $profile = null;
-        $notifications = [];
-        $unreadCount = 0;
-        if ($notificationChannel) {
-          await supabase.removeChannel($notificationChannel);
-          $notificationChannel = null;
-        }
-        return;
-      }
-
-      // Handle SIGNED_IN and TOKEN_REFRESHED events
-      if (session?.user && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION')) {
-        await loadProfile(session.user.id);
+      if (currentUser) {
+        // User is logged in - load their data
+        await loadProfile(currentUser.id);
         await loadNotifications();
         subscribeToNotifications();
-      } else if (!session?.user) {
-        // Clear data if no user
+      } else {
+        // User is logged out - clear their data
         $profile = null;
         $notifications = [];
         $unreadCount = 0;
@@ -103,7 +103,7 @@
     });
 
     return () => {
-      subscription.unsubscribe();
+      unsubscribeUser();
       authSubscription?.unsubscribe?.();
     };
   });
