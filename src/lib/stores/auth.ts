@@ -1,11 +1,53 @@
 import { writable, get } from 'svelte/store';
-import type { User } from '@supabase/supabase-js';
+import type { User, Session } from '@supabase/supabase-js';
 import type { Profile } from '$lib/supabase';
 import { supabase } from '$lib/supabase';
 
 export const user = writable<User | null>(null);
+export const session = writable<Session | null>(null);
 export const profile = writable<Profile | null>(null);
 export const loading = writable(true);
+
+/**
+ * Initialize authentication state and set up listener
+ * Call this once in the root layout component
+ *
+ * @returns The auth subscription (for cleanup)
+ */
+export async function initializeAuth() {
+	try {
+		console.log('Initializing auth...');
+
+		// Get current session
+		const { data: { session: currentSession }, error } = await supabase.auth.getSession();
+		if (error) {
+			console.error('Error getting session:', error);
+			throw error;
+		}
+
+		// Set initial state
+		session.set(currentSession);
+		user.set(currentSession?.user ?? null);
+
+		console.log('Initial session loaded:', currentSession?.user?.id ?? 'no user');
+
+		// Listen for auth changes
+		const {
+			data: { subscription },
+		} = supabase.auth.onAuthStateChange(async (event, newSession) => {
+			console.log('Auth state changed:', event, newSession?.user?.id ?? 'no user');
+			session.set(newSession);
+			user.set(newSession?.user ?? null);
+		});
+
+		loading.set(false);
+		return subscription;
+	} catch (error) {
+		console.error('Auth initialization error:', error);
+		loading.set(false);
+		return null;
+	}
+}
 
 /**
  * Refresh the profile from the database

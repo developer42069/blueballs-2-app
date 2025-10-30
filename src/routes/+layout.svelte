@@ -2,7 +2,7 @@
   import "../app.css";
   import { onMount, onDestroy } from "svelte";
   import { supabase } from "$lib/supabase";
-  import { user, profile, loading } from "$lib/stores/auth";
+  import { user, profile, loading, initializeAuth } from "$lib/stores/auth";
   import { theme } from "$lib/stores/theme";
   import { notifications, unreadCount, notificationChannel } from "$lib/stores/notifications";
   import type { Notification } from "$lib/stores/notifications";
@@ -31,7 +31,9 @@
   let isMobile = false;
   let isLoadingNotifications = false;
 
-  onMount(() => {
+  let authSubscription: any = null;
+
+  onMount(async () => {
     // Check viewport size
     isMobile = window.innerWidth <= 768;
 
@@ -56,38 +58,23 @@
       }
     });
 
-    // Get initial session
-    (async () => {
-      // Check if logout is in progress
-      if (sessionStorage.getItem('logout-in-progress') === 'true') {
-        $loading = false;
-        return;
-      }
+    // Initialize auth - this handles session loading and sets up the listener
+    authSubscription = await initializeAuth();
 
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (session) {
-        $user = session.user;
-        await loadProfile(session.user.id);
-        await loadNotifications();
-        subscribeToNotifications();
-      }
-      $loading = false;
-    })();
-
-    // Listen for auth changes
+    // Set up a separate listener for profile/notification loading
+    // This keeps auth state separate from app data loading
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Layout: Auth state changed', event);
+
       // Don't restore session if logout is in progress
       if (sessionStorage.getItem('logout-in-progress') === 'true') {
         return;
       }
 
-      // Handle SIGNED_OUT event explicitly
+      // Handle SIGNED_OUT event
       if (event === 'SIGNED_OUT') {
-        $user = null;
         $profile = null;
         $notifications = [];
         $unreadCount = 0;
@@ -98,13 +85,13 @@
         return;
       }
 
-      // Handle other events
-      $user = session?.user ?? null;
-      if (session?.user) {
+      // Handle SIGNED_IN and TOKEN_REFRESHED events
+      if (session?.user && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION')) {
         await loadProfile(session.user.id);
         await loadNotifications();
         subscribeToNotifications();
-      } else {
+      } else if (!session?.user) {
+        // Clear data if no user
         $profile = null;
         $notifications = [];
         $unreadCount = 0;
@@ -113,12 +100,12 @@
           $notificationChannel = null;
         }
       }
-
-      // Always set loading to false after auth state change completes
-      $loading = false;
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+      authSubscription?.unsubscribe?.();
+    };
   });
 
   onDestroy(async () => {

@@ -1,19 +1,7 @@
 import type { LayoutServerLoad } from './$types';
 
-export const load: LayoutServerLoad = async ({ locals }) => {
-	try {
-		const { session, user } = await locals.safeGetSession();
-
-		return {
-			session,
-			user
-		};
-	} catch (error) {
-		console.error('Error in root layout server load:', error);
-		// Return null values instead of crashing with 500
-		return {
-			session: null,
-			user: null
-		};
-	}
+// Server-side session loading is no longer needed with client-side auth
+// The client handles session persistence via localStorage
+export const load: LayoutServerLoad = async () => {
+	return {};
 };

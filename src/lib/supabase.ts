@@ -1,11 +1,19 @@
-import { createBrowserClient } from '@supabase/ssr';
+import { createClient } from '@supabase/supabase-js';
 import { env } from '$env/dynamic/public';
 
-// Create a singleton browser client for use in components
-// This uses @supabase/ssr which properly handles cookies
-export const supabase = createBrowserClient(
+// Create a simple singleton client for use throughout the app
+// Uses localStorage for session persistence
+export const supabase = createClient(
 	env.PUBLIC_SUPABASE_URL,
-	env.PUBLIC_SUPABASE_ANON_KEY
+	env.PUBLIC_SUPABASE_ANON_KEY,
+	{
+		auth: {
+			persistSession: true,
+			autoRefreshToken: true,
+			detectSessionInUrl: true,
+			flowType: 'pkce'
+		}
+	}
 );
 
 export type Profile = {
