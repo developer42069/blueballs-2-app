@@ -30,6 +30,35 @@
   let notificationMenuOpen = false;
   let isMobile = false;
 
+  // Handle page visibility to refresh auth state
+  function handleVisibilityChange() {
+    // Guard against SSR - only access document in browser
+    if (typeof document !== 'undefined' && document.visibilityState === 'visible' && $user) {
+      // Refresh session when page becomes visible to prevent stale state
+      (async () => {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session && session.user) {
+          $user = session.user;
+          await loadProfile(session.user.id);
+        }
+      })();
+    }
+  }
+
+  // Handle bfcache restoration
+  function handlePageShow(event: any) {
+    if (event.persisted && $user) {
+      // Page was restored from cache, refresh auth state
+      (async () => {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session && session.user) {
+          $user = session.user;
+          await loadProfile(session.user.id);
+        }
+      })();
+    }
+  }
+
   onMount(() => {
     // Check viewport size
     isMobile = window.innerWidth <= 768;
@@ -38,6 +67,10 @@
     if (!isMobile) {
       leftMenuOpen = true;
     }
+
+    // Add event listeners for visibility and bfcache
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('pageshow', handlePageShow);
 
     window.addEventListener("resize", () => {
       const wasMobile = isMobile;
@@ -118,6 +151,11 @@
   });
 
   onDestroy(async () => {
+    // Clean up event listeners
+    document.removeEventListener('visibilitychange', handleVisibilityChange);
+    window.removeEventListener('pageshow', handlePageShow);
+
+    // Clean up notification channel
     if ($notificationChannel) {
       await supabase.removeChannel($notificationChannel);
     }

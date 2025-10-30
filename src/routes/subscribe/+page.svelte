@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import { user, profile, refreshProfile } from '$lib/stores/auth';
 	import { goto } from '$app/navigation';
 	import { supabase } from '$lib/supabase';
@@ -14,10 +14,34 @@
 	let cancelLoading = false;
 	let changingSubscription = false;
 
-	onMount(async () => {
-		// Wait a bit for auth to load before redirecting
-		await new Promise(resolve => setTimeout(resolve, 500));
+	// Handle bfcache restoration (when user presses back from Stripe)
+	function handlePageShow(event: any) {
+		// If page was restored from bfcache, reset processing state
+		if (event.persisted) {
+			console.log('Page restored from bfcache - resetting state');
+			processingCheckout = false;
+			changingSubscription = false;
+			error = '';
+		}
+	}
 
+	// Handle visibility change (when returning to tab)
+	function handleVisibilityChange() {
+		// Guard against SSR - only access document in browser
+		if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+			console.log('Page became visible - checking state');
+			// Reset processing state when page becomes visible
+			processingCheckout = false;
+			changingSubscription = false;
+		}
+	}
+
+	onMount(async () => {
+		// Add event listeners for bfcache and visibility changes
+		window.addEventListener('pageshow', handlePageShow);
+		document.addEventListener('visibilitychange', handleVisibilityChange);
+
+		// Immediately check auth (no timeout needed)
 		if (!$user) {
 			goto('/auth/login');
 			return;
@@ -27,6 +51,12 @@
 		analytics.viewSubscription();
 
 		loading = false;
+	});
+
+	onDestroy(() => {
+		// Clean up event listeners
+		window.removeEventListener('pageshow', handlePageShow);
+		document.removeEventListener('visibilitychange', handleVisibilityChange);
 	});
 
 	async function handleSubscribe(tier: 'mid' | 'big') {

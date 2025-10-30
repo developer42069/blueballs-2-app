@@ -41,11 +41,12 @@
 			console.error('Logout failed:', e);
 		}
 
-		// Redirect to homepage after 2 seconds with full page reload
-		// This ensures all cached state and data is completely cleared
+		// Redirect to homepage after 2 seconds using SvelteKit navigation
+		// This ensures proper cleanup and prevents getting stuck
 		setTimeout(() => {
 			sessionStorage.removeItem('logout-in-progress');
-			window.location.href = '/';
+			// Use SvelteKit's goto with full reset
+			goto('/', { replaceState: true, invalidateAll: true });
 		}, 2000);
 	});
 </script>
