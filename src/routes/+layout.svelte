@@ -29,18 +29,15 @@
   let leftMenuOpen = false;
   let notificationMenuOpen = false;
   let isMobile = false;
+  let isLoadingNotifications = false;
 
   // Handle page visibility to refresh auth state
   function handleVisibilityChange() {
     // Guard against SSR - only access document in browser
     if (typeof document !== 'undefined' && document.visibilityState === 'visible' && $user) {
-      // Refresh session when page becomes visible to prevent stale state
+      // Just trigger a session check - onAuthStateChange will handle the rest
       (async () => {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session && session.user) {
-          $user = session.user;
-          await loadProfile(session.user.id);
-        }
+        await supabase.auth.getSession();
       })();
     }
   }
@@ -48,13 +45,9 @@
   // Handle bfcache restoration
   function handlePageShow(event: any) {
     if (event.persisted && $user) {
-      // Page was restored from cache, refresh auth state
+      // Just trigger a session check - onAuthStateChange will handle the rest
       (async () => {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session && session.user) {
-          $user = session.user;
-          await loadProfile(session.user.id);
-        }
+        await supabase.auth.getSession();
       })();
     }
   }
@@ -234,24 +227,42 @@
   }
 
   async function loadNotifications() {
-    if (!$user) return;
+    if (!$user || isLoadingNotifications) return;
 
-    const { data, error } = await supabase
-      .from('notifications')
-      .select(`
-        *,
-        from_profile:from_user_id (
-          username,
-          profile_image_url
-        )
-      `)
-      .eq('user_id', $user.id)
-      .order('created_at', { ascending: false })
-      .limit(20);
+    isLoadingNotifications = true;
+    try {
+      const { data, error } = await supabase
+        .from('notifications')
+        .select(`
+          *,
+          from_profile:from_user_id (
+            username,
+            profile_image_url
+          )
+        `)
+        .eq('user_id', $user.id)
+        .order('created_at', { ascending: false })
+        .limit(20);
 
-    if (data) {
-      $notifications = data;
-      $unreadCount = data.filter(n => !n.read).length;
+      if (error) {
+        console.error('Failed to load notifications:', error);
+        // Set empty state instead of leaving undefined
+        $notifications = [];
+        $unreadCount = 0;
+        return;
+      }
+
+      if (data) {
+        $notifications = data;
+        $unreadCount = data.filter(n => !n.read).length;
+      }
+    } catch (err) {
+      console.error('Exception while loading notifications:', err);
+      // Set safe defaults on exception
+      $notifications = [];
+      $unreadCount = 0;
+    } finally {
+      isLoadingNotifications = false;
     }
   }
 
@@ -266,22 +277,31 @@
         table: 'notifications',
         filter: `user_id=eq.${$user.id}`
       }, async (payload) => {
-        // Load the notification with profile data
-        const { data } = await supabase
-          .from('notifications')
-          .select(`
-            *,
-            from_profile:from_user_id (
-              username,
-              profile_image_url
-            )
-          `)
-          .eq('id', payload.new.id)
-          .single();
+        try {
+          // Load the notification with profile data
+          const { data, error } = await supabase
+            .from('notifications')
+            .select(`
+              *,
+              from_profile:from_user_id (
+                username,
+                profile_image_url
+              )
+            `)
+            .eq('id', payload.new.id)
+            .single();
 
-        if (data) {
-          $notifications = [data, ...$notifications];
-          $unreadCount = $unreadCount + 1;
+          if (error) {
+            console.error('Failed to load new notification:', error);
+            return;
+          }
+
+          if (data) {
+            $notifications = [data, ...$notifications];
+            $unreadCount = $unreadCount + 1;
+          }
+        } catch (err) {
+          console.error('Exception while loading new notification:', err);
         }
       })
       .subscribe();
