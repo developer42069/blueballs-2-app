@@ -62,36 +62,26 @@
     // Initialize auth - this handles session loading and sets up the listener
     authSubscription = await initializeAuth();
 
-    // Load initial profile and notifications if user is already logged in
-    if ($user) {
-      lastUserId = $user.id;
-      await loadProfile($user.id);
-      await loadNotifications();
-      subscribeToNotifications();
-    }
-
     // Set up auth state listener for profile/notification loading
-    // This watches the reactive user store for changes after initial load
+    // This watches the reactive user store and handles all auth state changes
     const unsubscribeUser = user.subscribe(async (currentUser) => {
-      // Skip if user hasn't changed (prevents duplicate loads)
-      const newUserId = currentUser?.id ?? null;
-      if (newUserId === lastUserId) {
-        return;
-      }
-      lastUserId = newUserId;
-
       // Don't restore session if logout is in progress
       if (sessionStorage.getItem('logout-in-progress') === 'true') {
         return;
       }
 
-      if (currentUser) {
-        // User is logged in - load their data
+      const newUserId = currentUser?.id ?? null;
+
+      // Handle user logged in or user changed
+      if (currentUser && newUserId !== lastUserId) {
+        lastUserId = newUserId;
         await loadProfile(currentUser.id);
         await loadNotifications();
         subscribeToNotifications();
-      } else {
-        // User is logged out - clear their data
+      }
+      // Handle user logged out
+      else if (!currentUser && lastUserId !== null) {
+        lastUserId = null;
         $profile = null;
         $notifications = [];
         $unreadCount = 0;
@@ -100,6 +90,7 @@
           $notificationChannel = null;
         }
       }
+      // Else: No change in user state, do nothing
     });
 
     return () => {
