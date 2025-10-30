@@ -2,15 +2,14 @@ import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ url, locals }) => {
 	try {
-		// Check if user is authenticated
+		// Check if user is authenticated (but don't return session/user - parent layout provides those)
 		const { session, user } = await locals.safeGetSession();
 
 		if (!session || !user) {
 			// Not authenticated - redirect will be handled by client
+			// Only return page-specific data
 			return {
-				canceled: false,
-				session: null,
-				user: null
+				canceled: false
 			};
 		}
 
@@ -21,18 +20,15 @@ export const load: PageServerLoad = async ({ url, locals }) => {
 			console.log(`User ${user.id} returned from Stripe without completing payment`);
 		}
 
+		// Only return page-specific data - parent layout already provides session/user
 		return {
-			canceled,
-			session,
-			user
+			canceled
 		};
 	} catch (error) {
 		console.error('Error in subscribe page server load:', error);
-		// Return safe defaults instead of throwing 500
+		// Return safe default for page-specific data only
 		return {
-			canceled: false,
-			session: null,
-			user: null
+			canceled: false
 		};
 	}
 };
