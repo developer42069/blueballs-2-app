@@ -637,9 +637,9 @@
             >
               <div class="flex items-start gap-3">
                 <div class="flex-shrink-0 mt-1">
-                  {#if notification.from_profile?.profile_picture_url}
+                  {#if notification.from_profile?.profile_image_url}
                     <img
-                      src={notification.from_profile.profile_picture_url}
+                      src={notification.from_profile.profile_image_url}
                       alt={notification.from_profile.username}
                       class="w-10 h-10 rounded-full object-cover"
                     />
