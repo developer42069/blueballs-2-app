@@ -29,7 +29,13 @@
       "Bash(npm run docker:build:*)",
       "Bash(npm run docker:up:*)",
       "Bash(npm run docker:logs:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(npx wrangler:*)",
+      "Bash(set:*)",
+      "Bash($env:CLOUDFLARE_ACCOUNT_ID=\"f153a3361bb3d73029587a7a56285294\")",
+      "Bash(export CLOUDFLARE_ACCOUNT_ID=f153a3361bb3d73029587a7a56285294)",
+      "Bash(export CLOUDFLARE_ACCOUNT_ID=d8d7390ea59a7242035268cefde64cc4)",
+      "Bash(supabase:*)"
     ],
     "deny": [],
     "ask": []

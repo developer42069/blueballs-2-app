@@ -52,6 +52,12 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 				break;
 			}
 
+			case 'checkout.session.expired': {
+				const session = event.data.object as Stripe.Checkout.Session;
+				await handleCheckoutExpired(session);
+				break;
+			}
+
 			case 'customer.subscription.updated': {
 				const subscription = event.data.object as Stripe.Subscription;
 				await handleSubscriptionUpdated(subscription);
@@ -99,9 +105,11 @@ async function handleCheckoutComplete(session: Stripe.Checkout.Session, stripe: 
 	// Get subscription details
 	const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
 
-	// Update user profile
+	// Update user profile with subscription AND customer ID
+	// This ensures customer ID is only saved after successful payment
 	const updates: any = {
 		membership_tier: tier,
+		stripe_customer_id: session.customer as string, // Save customer ID from successful checkout
 		stripe_subscription_id: subscription.id,
 		subscription_ends_at: new Date(subscription.current_period_end * 1000).toISOString()
 	};
@@ -122,6 +130,19 @@ async function handleCheckoutComplete(session: Stripe.Checkout.Session, stripe: 
 		.eq('id', userId);
 
 	console.log(`Subscription activated for user ${userId} - ${tier}`);
+}
+
+async function handleCheckoutExpired(session: Stripe.Checkout.Session) {
+	const userId = session.metadata?.user_id;
+
+	if (!userId) {
+		console.error('Missing user_id in expired checkout session');
+		return;
+	}
+
+	console.log(`Checkout session expired for user ${userId}`);
+	// The session expired without payment - no cleanup needed since we don't save
+	// customer ID until checkout completes
 }
 
 async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {

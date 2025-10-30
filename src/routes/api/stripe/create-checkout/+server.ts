@@ -45,26 +45,9 @@ export const POST: RequestHandler = async ({ request, url, locals }) => {
 			apiVersion: '2025-02-24.acacia'
 		});
 
-		// Create or retrieve Stripe customer
+		// Use existing Stripe customer if available, otherwise let Stripe create one during checkout
+		// The customer ID will be saved to the profile via webhook after successful payment
 		let customerId = profile.stripe_customer_id;
-
-		if (!customerId) {
-			const customer = await stripe.customers.create({
-				email: profile.email,
-				metadata: {
-					user_id: user.id,
-					username: profile.username
-				}
-			});
-
-			customerId = customer.id;
-
-			// Update profile with customer ID
-			await locals.supabase
-				.from('profiles')
-				.update({ stripe_customer_id: customerId })
-				.eq('id', user.id);
-		}
 
 		// Define price IDs based on mode
 		const priceIds: Record<string, string> = isTestMode
@@ -79,7 +62,8 @@ export const POST: RequestHandler = async ({ request, url, locals }) => {
 
 		// Create checkout session with hosted mode (redirects to Stripe)
 		const checkoutSessionParams: Stripe.Checkout.SessionCreateParams = {
-			customer: customerId,
+			// Use existing customer ID if available, otherwise let Stripe create a new customer
+			...(customerId ? { customer: customerId } : { customer_email: profile.email }),
 			mode: 'subscription',
 			line_items: [
 				{
@@ -88,10 +72,11 @@ export const POST: RequestHandler = async ({ request, url, locals }) => {
 				}
 			],
 			success_url: `${url.origin}/subscribe/success?session_id={CHECKOUT_SESSION_ID}&tier=${tier}`,
-			cancel_url: `${url.origin}/subscribe`,
+			cancel_url: `${url.origin}/subscribe?canceled=true`,
 			metadata: {
 				user_id: user.id,
 				tier,
+				username: profile.username,
 				test_mode: isTestMode.toString()
 			}
 		};

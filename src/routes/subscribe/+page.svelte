@@ -6,6 +6,10 @@
 	import { MEMBERSHIP_TIERS } from '$lib/utils/gameConfig';
 	import { Heart, Zap, Star, CheckCircle, X, Crown, Image, MessageCircle, XCircle } from 'lucide-svelte';
 	import { analytics } from '$lib/analytics';
+	import { page } from '$app/stores';
+	import type { PageData } from './$types';
+
+	export let data: PageData;
 
 	let loading = true;
 	let processingCheckout = false;
@@ -13,6 +17,7 @@
 	let success = '';
 	let cancelLoading = false;
 	let changingSubscription = false;
+	let returnedFromStripe = false;
 
 	// Handle bfcache restoration (when user presses back from Stripe)
 	function handlePageShow(event: any) {
@@ -40,6 +45,21 @@
 		// Add event listeners for bfcache and visibility changes
 		window.addEventListener('pageshow', handlePageShow);
 		document.addEventListener('visibilitychange', handleVisibilityChange);
+
+		// Check if user returned from Stripe
+		if (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('stripe_checkout_active') === 'true') {
+			sessionStorage.removeItem('stripe_checkout_active');
+			returnedFromStripe = true;
+
+			// Reset any processing states
+			processingCheckout = false;
+			changingSubscription = false;
+
+			// Show appropriate message based on whether payment was cancelled
+			if (data.canceled) {
+				error = 'Payment was cancelled. You can try again when ready.';
+			}
+		}
 
 		// Immediately check auth (no timeout needed)
 		if (!$user) {
@@ -92,6 +112,11 @@
 			}
 
 			const { url } = await response.json();
+
+			// Set flag to track Stripe redirect
+			if (typeof sessionStorage !== 'undefined') {
+				sessionStorage.setItem('stripe_checkout_active', 'true');
+			}
 
 			// Redirect to Stripe's hosted checkout page
 			if (url) {
